@@ -2,6 +2,7 @@ package packets
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 )
 
@@ -18,9 +19,12 @@ type ConnectPacketFlags struct {
 // ConnectPacket ...
 type ConnectPacket struct {
 	FixedHeader byte
-	ProtoName   [6]byte
+	Length      uint16
+	ProtoName   [4]byte
 	ProtoLevel  byte
 	Flags       ConnectPacketFlags
+	KeepAlive   uint16
+	ClientID    []byte
 }
 
 const (
@@ -43,25 +47,27 @@ const (
 )
 
 // ExtractConnectPacket ...
-func ExtractConnectPacket(p []byte) (cp ConnectPacket, err error) {
-	cp.FixedHeader = p[0]
+func ExtractConnectPacket(b []byte) (cp ConnectPacket, err error) {
+	cp.FixedHeader = b[0]
 	if cp.FixedHeader != ConnectFixedHeader {
 		return cp, fmt.Errorf("invalid fixed header: %x", cp.FixedHeader)
 	}
-	copy(cp.ProtoName[:], p[3:9])
-	if !bytes.Equal(cp.ProtoName[:], []byte{0x0, 0x4, 0x4D, 0x51, 0x54, 0x54}) {
+	cp.Length = binary.BigEndian.Uint16([]byte{b[1], b[2]})
+
+	copy(cp.ProtoName[:], b[4:8])
+	if !bytes.Equal(cp.ProtoName[:], []byte{0x4D, 0x51, 0x54, 0x54}) {
 		return cp, fmt.Errorf("invalid proto name: %v", cp.ProtoName)
 	}
-	cp.ProtoLevel = p[9]
+	cp.ProtoLevel = b[8]
 	if cp.ProtoLevel != SupportedProtoLevel {
 		return cp, fmt.Errorf("unsupported proto level: %x", cp.ProtoLevel)
 	}
 
-	fb := p[10]
-	fmt.Printf("10:%0b\n", p[10])
+	fb := b[9]
 	if fb&0b1 != 0x0 {
 		return cp, fmt.Errorf("invalid reserved bit")
 	}
+
 	cp.Flags = ConnectPacketFlags{
 		CleanSession: (fb>>1)&1 == 1,
 		Will:         (fb>>2)&1 == 1,
@@ -70,6 +76,13 @@ func ExtractConnectPacket(p []byte) (cp ConnectPacket, err error) {
 		Username:     (fb>>7)&1 == 1,
 		Password:     (fb>>6)&1 == 1,
 	}
+	cp.KeepAlive = binary.BigEndian.Uint16([]byte{b[11], b[12]})
+
+	p := b[13:]
+	cp.ClientID = p[0 : p[0]+1]
+	fmt.Println("clientID:", string(cp.ClientID))
+
+	fmt.Println("payload:", p)
 
 	fmt.Printf("flags: %+v\n", cp.Flags)
 	return
