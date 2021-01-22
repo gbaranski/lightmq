@@ -27,6 +27,7 @@ type ConnectPacket struct {
 	ClientID    []byte
 	WillTopic   []byte
 	WillMessage []byte
+	Username    []byte
 }
 
 const (
@@ -115,6 +116,17 @@ func ExtractConnectPacket(b []byte) (cp ConnectPacket, err error) {
 		}
 	}
 
+	if cp.Flags.Username {
+		usernameSize, err := p.ReadByte()
+		if err != nil {
+			return cp, fmt.Errorf("fail read usernameSize %s", err.Error())
+		}
+		cp.Username = make([]byte, usernameSize+1)
+		_, err = p.Read(cp.Username)
+		if err != nil {
+			return cp, fmt.Errorf("fail read username %s", err.Error())
+		}
+	}
 
 	fmt.Printf("flags: %+v\n", cp.Flags)
 	return
