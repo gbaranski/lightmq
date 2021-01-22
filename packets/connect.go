@@ -28,6 +28,7 @@ type ConnectPacket struct {
 	WillTopic   []byte
 	WillMessage []byte
 	Username    []byte
+	Password    []byte
 }
 
 const (
@@ -121,10 +122,23 @@ func ExtractConnectPacket(b []byte) (cp ConnectPacket, err error) {
 		if err != nil {
 			return cp, fmt.Errorf("fail read usernameSize %s", err.Error())
 		}
-		cp.Username = make([]byte, usernameSize+1)
+		cp.Username = make([]byte, usernameSize)
 		_, err = p.Read(cp.Username)
 		if err != nil {
 			return cp, fmt.Errorf("fail read username %s", err.Error())
+		}
+	}
+
+	if cp.Flags.Password {
+		passwordSizeBytes := make([]byte, 2)
+		if _, err = p.Read(passwordSizeBytes); err != nil {
+			return cp, fmt.Errorf("fail read passwordSizeBytes %s", err.Error())
+		}
+		passwordSize := binary.BigEndian.Uint16(passwordSizeBytes)
+		cp.Password = make([]byte, passwordSize)
+		_, err = p.Read(cp.Password)
+		if err != nil {
+			return cp, fmt.Errorf("fail read password %s", err.Error())
 		}
 	}
 
