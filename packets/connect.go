@@ -76,8 +76,6 @@ func extractConnectPayload(p *bytes.Reader, f ConnectPacketFlags) (cpp ConnectPa
 	if err != nil {
 		return cpp, fmt.Errorf("fail read clientID %s", err.Error())
 	}
-	fmt.Println("clientID:", cpp.ClientID)
-	fmt.Println("clientIDstr:", string(cpp.ClientID))
 
 	p.ReadByte() // Consume null terminator
 
