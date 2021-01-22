@@ -25,6 +25,8 @@ type ConnectPacket struct {
 	Flags       ConnectPacketFlags
 	KeepAlive   uint16
 	ClientID    []byte
+	WillTopic   []byte
+	WillMessage []byte
 }
 
 const (
@@ -90,7 +92,29 @@ func ExtractConnectPacket(b []byte) (cp ConnectPacket, err error) {
 	}
 	fmt.Println("clientID:", string(cp.ClientID))
 
-	fmt.Println("payload:", p)
+	if cp.Flags.Will {
+		willTopicSize, err := p.ReadByte()
+		if err != nil {
+			return cp, fmt.Errorf("fail read willTopicSize %s", err.Error())
+		}
+		cp.WillTopic = make([]byte, willTopicSize+1)
+		_, err = p.Read(cp.WillTopic)
+		if err != nil {
+			return cp, fmt.Errorf("fail read willTopic %s", err.Error())
+		}
+
+		willMessageSize, err := p.ReadByte()
+		if err != nil {
+			return cp, fmt.Errorf("fail read willMessageSize %s", err.Error())
+		}
+
+		cp.WillMessage = make([]byte, willMessageSize+1)
+		_, err = p.Read(cp.WillMessage)
+		if err != nil {
+			return cp, fmt.Errorf("fail read willMessage %s", err.Error())
+		}
+	}
+
 
 	fmt.Printf("flags: %+v\n", cp.Flags)
 	return
