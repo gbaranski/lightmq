@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/gbaranski/lightmq/packets"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -49,4 +50,8 @@ func (b Broker) handleConnection(conn net.Conn) {
 	}
 	log.Info("read %d bytes", n)
 	log.Info("bytes: %v", buf)
+	_, err = packets.ExtractConnectPacket(buf)
+	if err != nil {
+		log.Error("Fail extract connect packet", err.Error())
+	}
 }
