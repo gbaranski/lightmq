@@ -6,8 +6,8 @@ import (
 	"fmt"
 )
 
-// ConnectPacketFlags ...
-type ConnectPacketFlags struct {
+// ConnectFlags ...
+type ConnectFlags struct {
 	CleanSession bool
 	Will         bool
 	WillQoS      uint8
@@ -17,7 +17,7 @@ type ConnectPacketFlags struct {
 }
 
 // ConnectPacketPayload ...
-type ConnectPacketPayload struct {
+type ConnectPayload struct {
 	ClientID    []byte
 	WillTopic   []byte
 	WillMessage []byte
@@ -26,14 +26,14 @@ type ConnectPacketPayload struct {
 }
 
 // ConnectPacket ...
-type ConnectPacket struct {
+type Connect struct {
 	FixedHeader byte
 	Length      uint16
 	ProtoName   [4]byte
 	ProtoLevel  byte
-	Flags       ConnectPacketFlags
+	Flags       ConnectFlags
 	KeepAlive   uint16
-	Payload     ConnectPacketPayload
+	Payload     ConnectPayload
 }
 
 const (
@@ -55,8 +55,8 @@ const (
 	SupportedProtoLevel uint8 = 0x4
 )
 
-func extractConnectFlags(b byte) ConnectPacketFlags {
-	return ConnectPacketFlags{
+func extractConnectFlags(b byte) ConnectFlags {
+	return ConnectFlags{
 		CleanSession: (b>>1)&1 == 1,
 		Will:         (b>>2)&1 == 1,
 		WillQoS:      (b >> 3) & 0b11,
@@ -66,7 +66,7 @@ func extractConnectFlags(b byte) ConnectPacketFlags {
 	}
 }
 
-func extractConnectPayload(p *bytes.Reader, f ConnectPacketFlags) (cpp ConnectPacketPayload, err error) {
+func extractConnectPayload(p *bytes.Reader, f ConnectFlags) (cpp ConnectPayload, err error) {
 	clientIDSize, err := p.ReadByte()
 	if err != nil {
 		return cpp, fmt.Errorf("fail read clientID len %s", err.Error())
@@ -133,7 +133,7 @@ func extractConnectPayload(p *bytes.Reader, f ConnectPacketFlags) (cpp ConnectPa
 }
 
 // ExtractConnectPacket ...
-func ExtractConnectPacket(b []byte) (cp ConnectPacket, err error) {
+func ExtractConnectPacket(b []byte) (cp Connect, err error) {
 	cp.FixedHeader = b[0]
 	if cp.FixedHeader != ConnectFixedHeader {
 		return cp, fmt.Errorf("invalid fixed header: %x", cp.FixedHeader)
