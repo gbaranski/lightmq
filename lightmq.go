@@ -42,15 +42,22 @@ func (b Broker) Listen() error {
 }
 
 func (b Broker) handleConnection(conn net.Conn) {
-	buf := make([]byte, 1000)
-	n, err := conn.Read(buf)
+	buf := make([]byte, 100)
+	_, err := conn.Read(buf)
 	if err != nil {
 		log.Info("fail read data %s", err.Error())
 		return
 	}
-	log.Info("read %d bytes", n)
-	log.Info("bytes: %v", buf)
-	_, err = packets.ExtractConnectPacket(buf)
+	cp, err := packets.ExtractConnectPacket(buf)
+	log.WithFields(log.Fields{
+		"clientID":    string(cp.Payload.ClientID),
+		"username":    string(cp.Payload.Username),
+		"password":    string(cp.Payload.Password),
+		"willMessage": string(cp.Payload.WillMessage),
+		"willTopic":   string(cp.Payload.WillTopic),
+		"flags":       fmt.Sprintf("%+v", cp.Flags),
+	}).Info("Received connect packet")
+
 	if err != nil {
 		log.Error("Fail extract connect packet", err.Error())
 	}

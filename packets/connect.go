@@ -16,6 +16,15 @@ type ConnectPacketFlags struct {
 	Password     bool
 }
 
+// ConnectPacketPayload ...
+type ConnectPacketPayload struct {
+	ClientID    []byte
+	WillTopic   []byte
+	WillMessage []byte
+	Username    []byte
+	Password    []byte
+}
+
 // ConnectPacket ...
 type ConnectPacket struct {
 	FixedHeader byte
@@ -24,11 +33,7 @@ type ConnectPacket struct {
 	ProtoLevel  byte
 	Flags       ConnectPacketFlags
 	KeepAlive   uint16
-	ClientID    []byte
-	WillTopic   []byte
-	WillMessage []byte
-	Username    []byte
-	Password    []byte
+	Payload     ConnectPacketPayload
 }
 
 const (
@@ -49,6 +54,80 @@ const (
 	// It might be changed later to array of uint8
 	SupportedProtoLevel uint8 = 0x4
 )
+
+func extractConnectFlags(b byte) ConnectPacketFlags {
+	return ConnectPacketFlags{
+		CleanSession: (b>>1)&1 == 1,
+		Will:         (b>>2)&1 == 1,
+		WillQoS:      (b >> 3) & 0b11,
+		WillRetain:   (b>>5)&1 == 1,
+		Username:     (b>>7)&1 == 1,
+		Password:     (b>>6)&1 == 1,
+	}
+}
+
+func extractConnectPayload(p *bytes.Reader, f ConnectPacketFlags) (cpp ConnectPacketPayload, err error) {
+	clientIDSize, err := p.ReadByte()
+	if err != nil {
+		return cpp, fmt.Errorf("fail read clientID len %s", err.Error())
+	}
+	cpp.ClientID = make([]byte, clientIDSize+1)
+	_, err = p.Read(cpp.ClientID)
+	if err != nil {
+		return cpp, fmt.Errorf("fail read clientID %s", err.Error())
+	}
+	fmt.Println("clientID:", cpp.ClientID)
+	fmt.Println("clientIDstr:", string(cpp.ClientID))
+
+	if f.Will {
+		willTopicSize, err := p.ReadByte()
+		if err != nil {
+			return cpp, fmt.Errorf("fail read willTopicSize %s", err.Error())
+		}
+		cpp.WillTopic = make([]byte, willTopicSize+1)
+		_, err = p.Read(cpp.WillTopic)
+		if err != nil {
+			return cpp, fmt.Errorf("fail read willTopic %s", err.Error())
+		}
+
+		willMessageSize, err := p.ReadByte()
+		if err != nil {
+			return cpp, fmt.Errorf("fail read willMessageSize %s", err.Error())
+		}
+
+		cpp.WillMessage = make([]byte, willMessageSize+1)
+		_, err = p.Read(cpp.WillMessage)
+		if err != nil {
+			return cpp, fmt.Errorf("fail read willMessage %s", err.Error())
+		}
+	}
+
+	if f.Username {
+		usernameSize, err := p.ReadByte()
+		if err != nil {
+			return cpp, fmt.Errorf("fail read usernameSize %s", err.Error())
+		}
+		cpp.Username = make([]byte, usernameSize)
+		_, err = p.Read(cpp.Username)
+		if err != nil {
+			return cpp, fmt.Errorf("fail read username %s", err.Error())
+		}
+	}
+
+	if f.Password {
+		passwordSizeBytes := make([]byte, 2)
+		if _, err = p.Read(passwordSizeBytes); err != nil {
+			return cpp, fmt.Errorf("fail read passwordSizeBytes %s", err.Error())
+		}
+		passwordSize := binary.BigEndian.Uint16(passwordSizeBytes)
+		cpp.Password = make([]byte, passwordSize)
+		_, err = p.Read(cpp.Password)
+		if err != nil {
+			return cpp, fmt.Errorf("fail read password %s", err.Error())
+		}
+	}
+	return cpp, nil
+}
 
 // ExtractConnectPacket ...
 func ExtractConnectPacket(b []byte) (cp ConnectPacket, err error) {
@@ -71,77 +150,11 @@ func ExtractConnectPacket(b []byte) (cp ConnectPacket, err error) {
 	if fb&0b1 != 0x0 {
 		return cp, fmt.Errorf("invalid reserved bit")
 	}
+	cp.Flags = extractConnectFlags(fb)
 
-	cp.Flags = ConnectPacketFlags{
-		CleanSession: (fb>>1)&1 == 1,
-		Will:         (fb>>2)&1 == 1,
-		WillQoS:      (fb >> 3) & 0b11,
-		WillRetain:   (fb>>5)&1 == 1,
-		Username:     (fb>>7)&1 == 1,
-		Password:     (fb>>6)&1 == 1,
-	}
 	cp.KeepAlive = binary.BigEndian.Uint16([]byte{b[11], b[12]})
-
 	p := bytes.NewReader(b[13:])
-	clientIDSize, err := p.ReadByte()
-	if err != nil {
-		return cp, fmt.Errorf("fail read clientID len %s", err.Error())
-	}
-	cp.ClientID = make([]byte, clientIDSize+1)
-	_, err = p.Read(cp.ClientID)
-	if err != nil {
-		return cp, fmt.Errorf("fail read clientID %s", err.Error())
-	}
-	fmt.Println("clientID:", string(cp.ClientID))
+	cp.Payload, err = extractConnectPayload(p, cp.Flags)
 
-	if cp.Flags.Will {
-		willTopicSize, err := p.ReadByte()
-		if err != nil {
-			return cp, fmt.Errorf("fail read willTopicSize %s", err.Error())
-		}
-		cp.WillTopic = make([]byte, willTopicSize+1)
-		_, err = p.Read(cp.WillTopic)
-		if err != nil {
-			return cp, fmt.Errorf("fail read willTopic %s", err.Error())
-		}
-
-		willMessageSize, err := p.ReadByte()
-		if err != nil {
-			return cp, fmt.Errorf("fail read willMessageSize %s", err.Error())
-		}
-
-		cp.WillMessage = make([]byte, willMessageSize+1)
-		_, err = p.Read(cp.WillMessage)
-		if err != nil {
-			return cp, fmt.Errorf("fail read willMessage %s", err.Error())
-		}
-	}
-
-	if cp.Flags.Username {
-		usernameSize, err := p.ReadByte()
-		if err != nil {
-			return cp, fmt.Errorf("fail read usernameSize %s", err.Error())
-		}
-		cp.Username = make([]byte, usernameSize)
-		_, err = p.Read(cp.Username)
-		if err != nil {
-			return cp, fmt.Errorf("fail read username %s", err.Error())
-		}
-	}
-
-	if cp.Flags.Password {
-		passwordSizeBytes := make([]byte, 2)
-		if _, err = p.Read(passwordSizeBytes); err != nil {
-			return cp, fmt.Errorf("fail read passwordSizeBytes %s", err.Error())
-		}
-		passwordSize := binary.BigEndian.Uint16(passwordSizeBytes)
-		cp.Password = make([]byte, passwordSize)
-		_, err = p.Read(cp.Password)
-		if err != nil {
-			return cp, fmt.Errorf("fail read password %s", err.Error())
-		}
-	}
-
-	fmt.Printf("flags: %+v\n", cp.Flags)
-	return
+	return cp, err
 }
