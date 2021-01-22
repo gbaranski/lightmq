@@ -16,7 +16,7 @@ type ConnectFlags struct {
 	Password     bool
 }
 
-// ConnectPacketPayload ...
+// ConnectPayload ...
 type ConnectPayload struct {
 	ClientID    []byte
 	WillTopic   []byte
@@ -25,15 +25,14 @@ type ConnectPayload struct {
 	Password    []byte
 }
 
-// ConnectPacket ...
+// Connect ...
 type Connect struct {
-	FixedHeader byte
-	Length      uint16
-	ProtoName   [4]byte
-	ProtoLevel  byte
-	Flags       ConnectFlags
-	KeepAlive   uint16
-	Payload     ConnectPayload
+	Length     uint16
+	ProtoName  [4]byte
+	ProtoLevel byte
+	Flags      ConnectFlags
+	KeepAlive  uint16
+	Payload    ConnectPayload
 }
 
 const (
@@ -45,9 +44,6 @@ const (
 
 	// ExactlyOnceQoS says that message will be delivered exactly once
 	ExactlyOnceQoS uint8 = 0x02
-
-	// ConnectFixedHeader ...
-	ConnectFixedHeader uint8 = 0x10
 
 	// SupportedProtoLevel defines the supported level by the broker
 	//
@@ -134,9 +130,9 @@ func extractConnectPayload(p *bytes.Reader, f ConnectFlags) (cpp ConnectPayload,
 
 // ExtractConnectPacket ...
 func ExtractConnectPacket(b []byte) (cp Connect, err error) {
-	cp.FixedHeader = b[0]
-	if cp.FixedHeader != ConnectFixedHeader {
-		return cp, fmt.Errorf("invalid fixed header: %x", cp.FixedHeader)
+	fixedHeader := b[0]
+	if (fixedHeader >> 4) != TypeConnect {
+		return cp, fmt.Errorf("invalid control packet type: %x", fixedHeader>>4)
 	}
 	cp.Length = binary.BigEndian.Uint16([]byte{b[1], b[2]})
 
@@ -156,8 +152,8 @@ func ExtractConnectPacket(b []byte) (cp Connect, err error) {
 	cp.Flags = extractConnectFlags(fb)
 
 	cp.KeepAlive = binary.BigEndian.Uint16([]byte{b[11], b[12]})
-	p := bytes.NewReader(b[13:])
-	cp.Payload, err = extractConnectPayload(p, cp.Flags)
+
+	cp.Payload, err = extractConnectPayload(bytes.NewReader(b[13:]), cp.Flags)
 
 	return cp, err
 }
