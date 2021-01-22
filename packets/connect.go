@@ -78,8 +78,16 @@ func ExtractConnectPacket(b []byte) (cp ConnectPacket, err error) {
 	}
 	cp.KeepAlive = binary.BigEndian.Uint16([]byte{b[11], b[12]})
 
-	p := b[13:]
-	cp.ClientID = p[0 : p[0]+1]
+	p := bytes.NewReader(b[13:])
+	clientIDSize, err := p.ReadByte()
+	if err != nil {
+		return cp, fmt.Errorf("fail read clientID len %s", err.Error())
+	}
+	cp.ClientID = make([]byte, clientIDSize+1)
+	_, err = p.Read(cp.ClientID)
+	if err != nil {
+		return cp, fmt.Errorf("fail read clientID %s", err.Error())
+	}
 	fmt.Println("clientID:", string(cp.ClientID))
 
 	fmt.Println("payload:", p)
