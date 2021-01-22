@@ -71,7 +71,7 @@ func extractConnectPayload(p *bytes.Reader, f ConnectPacketFlags) (cpp ConnectPa
 	if err != nil {
 		return cpp, fmt.Errorf("fail read clientID len %s", err.Error())
 	}
-	cpp.ClientID = make([]byte, clientIDSize+1)
+	cpp.ClientID = make([]byte, clientIDSize)
 	_, err = p.Read(cpp.ClientID)
 	if err != nil {
 		return cpp, fmt.Errorf("fail read clientID %s", err.Error())
@@ -79,27 +79,32 @@ func extractConnectPayload(p *bytes.Reader, f ConnectPacketFlags) (cpp ConnectPa
 	fmt.Println("clientID:", cpp.ClientID)
 	fmt.Println("clientIDstr:", string(cpp.ClientID))
 
+	p.ReadByte() // Consume null terminator
+
 	if f.Will {
 		willTopicSize, err := p.ReadByte()
 		if err != nil {
 			return cpp, fmt.Errorf("fail read willTopicSize %s", err.Error())
 		}
-		cpp.WillTopic = make([]byte, willTopicSize+1)
+		cpp.WillTopic = make([]byte, willTopicSize)
 		_, err = p.Read(cpp.WillTopic)
 		if err != nil {
 			return cpp, fmt.Errorf("fail read willTopic %s", err.Error())
 		}
+		p.ReadByte() // Consume null terminator
 
 		willMessageSize, err := p.ReadByte()
 		if err != nil {
 			return cpp, fmt.Errorf("fail read willMessageSize %s", err.Error())
 		}
 
-		cpp.WillMessage = make([]byte, willMessageSize+1)
+		cpp.WillMessage = make([]byte, willMessageSize)
 		_, err = p.Read(cpp.WillMessage)
 		if err != nil {
 			return cpp, fmt.Errorf("fail read willMessage %s", err.Error())
 		}
+
+		p.ReadByte() // Consume null terminator
 	}
 
 	if f.Username {
