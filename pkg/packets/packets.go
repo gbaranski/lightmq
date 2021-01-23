@@ -83,7 +83,7 @@ func VerifyProtoName(r *bytes.Reader) error {
 	for i, exp := range expb {
 		b, err := r.ReadByte()
 		if err != nil {
-			return fmt.Errorf("fail read at %d: %s", i, err.Error())
+			return fmt.Errorf("can't read byte at %d: %s", i, err.Error())
 		}
 		if b != byte(exp) {
 			return fmt.Errorf("invalid byte at %d: exp: %x, rec: %x", i, exp, b)

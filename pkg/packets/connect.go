@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-
-	"github.com/gbaranski/lightmq/pkg/utils"
 )
 
 // ConnectFlags ...
@@ -53,9 +51,17 @@ const (
 	SupportedProtoLevel uint8 = 0x4
 )
 
-// ExtractConnectFlags ...
-func ExtractConnectFlags(b byte) ConnectFlags {
-	return ConnectFlags{
+// ReadConnectFlags ...
+func ReadConnectFlags(p *bytes.Reader) (ConnectFlags, error) {
+	b, err := p.ReadByte()
+	if err != nil {
+		return ConnectFlags{}, err
+	}
+	if b&0b1 != 0x0 {
+		return ConnectFlags{}, fmt.Errorf("invalid reserved bit: %x", b&0b1)
+	}
+
+	cf := ConnectFlags{
 		CleanSession: (b>>1)&1 == 1,
 		Will:         (b>>2)&1 == 1,
 		WillQoS:      (b >> 3) & 0b11,
@@ -63,6 +69,14 @@ func ExtractConnectFlags(b byte) ConnectFlags {
 		Username:     (b>>7)&1 == 1,
 		Password:     (b>>6)&1 == 1,
 	}
+	if (!cf.Will && cf.WillQoS > 0) || (!cf.Will && cf.WillRetain) {
+		return cf, fmt.Errorf("invalid flags, WillQoS/WillRetain can be true only if Will is true")
+	}
+	if cf.WillQoS != AtMostOnceQoS && cf.WillQoS != AtLeastOnceQoS && cf.WillQoS != ExactlyOnceQoS {
+		return cf, fmt.Errorf("invalid QoS level %x", cf.WillQoS)
+	}
+
+	return cf, nil
 }
 
 // ReadConnectPayload ...
@@ -131,37 +145,4 @@ func ReadConnectPayload(p *bytes.Reader, f ConnectFlags) (cpp ConnectPayload, er
 		}
 	}
 	return cpp, nil
-}
-
-// ReadConnectPacket ...
-func ReadConnectPacket(r *bytes.Reader) (cp Connect, err error) {
-	err = VerifyProtoName(r)
-	if err != nil {
-		return cp, fmt.Errorf("invalid proto name: %s", err)
-	}
-
-	cp.ProtoLevel, err = r.ReadByte()
-	if err != nil {
-		return cp, fmt.Errorf("fail read ProtoLevel %s", err.Error())
-	}
-
-	fb, err := r.ReadByte()
-	if err != nil {
-		return cp, fmt.Errorf("fail read flags byte %s", err.Error())
-	}
-	if fb&0b1 != 0x0 {
-		return cp, fmt.Errorf("invalid reserved bit")
-	}
-	cp.Flags = ExtractConnectFlags(fb)
-
-	cp.KeepAlive, err = utils.Read16BitInteger(r)
-	if err != nil {
-		return cp, err
-	}
-
-	r.ReadByte() // For some reason it's required. Looks like that there are 1 byte more than expected
-
-	cp.Payload, err = ReadConnectPayload(r, cp.Flags)
-
-	return cp, err
 }

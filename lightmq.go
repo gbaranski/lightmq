@@ -70,10 +70,12 @@ func (b Broker) handleConnection(conn net.Conn) {
 	c := handlers.Connection{
 		Reader: bytes.NewReader(data),
 		Len:    len,
+		Writer: conn,
 	}
-	res, err := handler(c)
+	err = handler(c)
 	if err != nil {
 		log.Error(err)
+		conn.Close()
+		return
 	}
-	fmt.Println("res: ", res)
 }
