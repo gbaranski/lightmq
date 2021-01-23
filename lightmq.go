@@ -125,6 +125,8 @@ func (b Broker) readLoop(conn net.Conn, client types.Client) error {
 			continue
 		case packets.TypePingREQ:
 			handler = handlers.OnPingReq
+		case packets.TypePublish:
+			handler = handlers.OnPublish
 		default:
 			return fmt.Errorf("unrecognized control packet type %x", fh.ControlPacketType())
 		}
@@ -133,17 +135,13 @@ func (b Broker) readLoop(conn net.Conn, client types.Client) error {
 		if err != nil {
 			return fmt.Errorf("fail read len %s", err.Error())
 		}
-		// Optimize this size
-		data := make([]byte, len)
-		_, err = r.Read(data)
-		if err != nil {
-			return err
-		}
 
 		err = handler(handlers.Packet{
-			Client: client,
-			Reader: r,
-			Writer: conn,
+			Client:          client,
+			FixedHeader:     fh,
+			RemainingLength: len,
+			Reader:          r,
+			Writer:          conn,
 		})
 		if err != nil {
 			return fmt.Errorf("fail handle %x: %s", fh.ControlPacketType(), err.Error())

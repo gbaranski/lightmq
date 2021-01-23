@@ -1,14 +1,13 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
 )
 
 // Read16BitInteger reads 16 bit integer from bytes reader
-func Read16BitInteger(r *bytes.Reader) (uint16, error) {
+func Read16BitInteger(r io.Reader) (uint16, error) {
 	bytes := make([]byte, 2)
 	_, err := r.Read(bytes)
 	if err != nil {

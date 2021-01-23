@@ -3,12 +3,16 @@ package handlers
 import (
 	"io"
 
+	"github.com/gbaranski/lightmq/pkg/packets"
 	"github.com/gbaranski/lightmq/pkg/types"
 )
 
 // Packet ...
 type Packet struct {
-	Client types.Client
+	Client          types.Client
+	FixedHeader     packets.FixedHeader
+	RemainingLength uint32
+	io.ByteReader
 	io.Reader
 	io.Writer
 }
