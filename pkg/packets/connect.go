@@ -85,7 +85,6 @@ func ReadConnectPayload(p *bytes.Reader, f ConnectFlags) (cpp ConnectPayload, er
 	if err != nil {
 		return cpp, fmt.Errorf("fail read clientID len %s", err.Error())
 	}
-	fmt.Println("ClientID size:", clientIDSize)
 	cpp.ClientID = make([]byte, clientIDSize)
 	_, err = p.Read(cpp.ClientID)
 	if err != nil {
