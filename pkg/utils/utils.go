@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -33,4 +34,17 @@ func ReadLength(r io.Reader) (uint32, error) {
 	}
 
 	return len, nil
+}
+
+// ReadByte reads single byte from io.Reader
+func ReadByte(r io.Reader) (byte, error) {
+	b := make([]byte, 1)
+	n, err := r.Read(b)
+	if err != nil {
+		return 0, err
+	}
+	if n != 1 {
+		return 0, fmt.Errorf("read invalid amount, exp: 1, n: %d", n)
+	}
+	return b[0], nil
 }
