@@ -1,55 +1,41 @@
 package handlers
 
 import (
-	"fmt"
+	"bytes"
+	"net"
 
 	"github.com/gbaranski/lightmq/pkg/packets"
-	"github.com/gbaranski/lightmq/pkg/utils"
+	"github.com/gbaranski/lightmq/pkg/types"
 	log "github.com/sirupsen/logrus"
 )
 
 // OnConnect should be executed when CONNECT packet is received
-func OnConnect(c Connection) error {
-	log.Info("New connection")
-	if err := packets.VerifyProtoName(c.Reader); err != nil {
-		return fmt.Errorf("fail verify proto name %s", err.Error())
-	}
-	protolevel, err := c.Reader.ReadByte()
-	if err != nil {
-		return fmt.Errorf("fail read proto level %s", err.Error())
-	}
-	if protolevel != packets.SupportedProtoLevel {
-		cack := packets.ConnACK{
-			ReturnCode: packets.ConnACKUnacceptableProtocol,
-		}.Bytes()
-		c.Write(cack[:])
-		return fmt.Errorf("fail verify proto name %s", err.Error())
-	}
-	cf, err := packets.ReadConnectFlags(c.Reader)
-	if err != nil {
-		return err
-	}
+func OnConnect(r *bytes.Reader, conn net.Conn) (client types.Client, err error) {
+	client.IPAddress = conn.RemoteAddr()
+	log.WithField("ip", client.IPAddress.String()).Info("Starting new connection")
 
-	keepAlive, err := utils.Read16BitInteger(c.Reader)
+	h, err := packets.ReadConnectVariableHeader(r)
 	if err != nil {
-		return fmt.Errorf("fail read keepalive %s", err.Error())
+		if err == packets.ErrUnacceptableProtocol {
+			cack := packets.ConnACK{
+				Flags: packets.ConnACKFlags{
+					SessionPresent: false,
+				},
+				ReturnCode: packets.ConnACKConnectionAccepted,
+			}.Bytes()
+			conn.Write(cack[:])
+			return client, err
+		}
+		return client, err
 	}
-	c.Reader.ReadByte() // <- for some reason its required
+	client.KeepAlive = h.KeepAlive
 
-	payload, err := packets.ReadConnectPayload(c.Reader, cf)
+	payload, err := packets.ReadConnectPayload(r, h.Flags)
 	if err != nil {
-		return err
+		return types.Client{}, err
 	}
-
-	log.WithFields(log.Fields{
-		"clientID":    string(payload.ClientID),
-		"username":    string(payload.Username),
-		"password":    string(payload.Password),
-		"willMessage": string(payload.WillMessage),
-		"willTopic":   string(payload.WillTopic),
-		"keepAlive":   keepAlive,
-		"flags":       fmt.Sprintf("%+v", cf),
-	}).Info("Received Connect packet")
+	client.ClientID = string(payload.ClientID)
+	client.Username = string(payload.Username)
 
 	cack := packets.ConnACK{
 		Flags: packets.ConnACKFlags{
@@ -57,11 +43,10 @@ func OnConnect(c Connection) error {
 		},
 		ReturnCode: packets.ConnACKConnectionAccepted,
 	}.Bytes()
-	_, err = c.Write(cack[:])
+	_, err = conn.Write(cack[:])
 	if err != nil {
-		return err
+		return types.Client{}, err
 	}
-	log.Info("Sent CONNACK")
 
-	return err
+	return client, nil
 }

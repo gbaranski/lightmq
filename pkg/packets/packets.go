@@ -2,6 +2,7 @@ package packets
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 )
 
@@ -75,6 +76,27 @@ const (
 	//
 	// Direction: Client to Server
 	TypeDisconnect
+)
+
+const (
+	// AtMostOnceQoS says that message will be delivered max 1 time
+	AtMostOnceQoS uint8 = 0x00
+
+	// AtLeastOnceQoS says that message will be delivered at least once
+	AtLeastOnceQoS uint8 = 0x01
+
+	// ExactlyOnceQoS says that message will be delivered exactly once
+	ExactlyOnceQoS uint8 = 0x02
+
+	// SupportedProtoLevel defines the supported level by the broker
+	//
+	// It might be changed later to array of uint8
+	SupportedProtoLevel uint8 = 0x4
+)
+
+var (
+	// ErrUnacceptableProtocol ...
+	ErrUnacceptableProtocol = errors.New("unnaceptable protocol")
 )
 
 // VerifyProtoName verifies if proto name is equal to ['M','Q','T','T']

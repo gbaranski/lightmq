@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	"github.com/gbaranski/lightmq/pkg/utils"
 )
 
 // ConnectFlags ...
@@ -16,6 +18,13 @@ type ConnectFlags struct {
 	Password     bool
 }
 
+// ConnectVariableHeader ...
+type ConnectVariableHeader struct {
+	ProtoLevel byte
+	Flags      ConnectFlags
+	KeepAlive  uint16
+}
+
 // ConnectPayload ...
 type ConnectPayload struct {
 	ClientID    []byte
@@ -24,32 +33,6 @@ type ConnectPayload struct {
 	Username    []byte
 	Password    []byte
 }
-
-// Connect ...
-type Connect struct {
-	Length     uint16
-	ProtoName  [4]byte
-	ProtoLevel byte
-	Flags      ConnectFlags
-	KeepAlive  uint16
-	Payload    ConnectPayload
-}
-
-const (
-	// AtMostOnceQoS says that message will be delivered max 1 time
-	AtMostOnceQoS uint8 = 0x00
-
-	// AtLeastOnceQoS says that message will be delivered at least once
-	AtLeastOnceQoS uint8 = 0x01
-
-	// ExactlyOnceQoS says that message will be delivered exactly once
-	ExactlyOnceQoS uint8 = 0x02
-
-	// SupportedProtoLevel defines the supported level by the broker
-	//
-	// It might be changed later to array of uint8
-	SupportedProtoLevel uint8 = 0x4
-)
 
 // ReadConnectFlags ...
 func ReadConnectFlags(p *bytes.Reader) (ConnectFlags, error) {
@@ -144,4 +127,30 @@ func ReadConnectPayload(p *bytes.Reader, f ConnectFlags) (cpp ConnectPayload, er
 		}
 	}
 	return cpp, nil
+}
+
+// ReadConnectVariableHeader ...
+func ReadConnectVariableHeader(b *bytes.Reader) (h ConnectVariableHeader, err error) {
+	if err := VerifyProtoName(b); err != nil {
+		return h, fmt.Errorf("fail verify proto name %s", err.Error())
+	}
+	h.ProtoLevel, err = b.ReadByte()
+	if err != nil {
+		return h, fmt.Errorf("fail read proto level %s", err.Error())
+	}
+	if h.ProtoLevel != SupportedProtoLevel {
+		return h, ErrUnacceptableProtocol
+	}
+	h.Flags, err = ReadConnectFlags(b)
+	if err != nil {
+		return h, err
+	}
+
+	h.KeepAlive, err = utils.Read16BitInteger(b)
+	if err != nil {
+		return h, fmt.Errorf("fail read keepalive %s", err.Error())
+	}
+	b.ReadByte() // <- for some reason its required
+
+	return h, nil
 }

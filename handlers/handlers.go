@@ -1,16 +1,10 @@
 package handlers
 
 import (
-	"bytes"
 	"io"
+
+	"github.com/gbaranski/lightmq/pkg/types"
 )
 
 // Handler is type for packet handling function
-type Handler = func(Connection) error
-
-// Connection ...
-type Connection struct {
-	Reader *bytes.Reader
-	Len    int
-	io.Writer
-}
+type Handler = func(reader io.ByteReader, w io.Writer, client types.Client) error
