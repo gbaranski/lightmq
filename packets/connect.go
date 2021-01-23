@@ -51,7 +51,8 @@ const (
 	SupportedProtoLevel uint8 = 0x4
 )
 
-func extractConnectFlags(b byte) ConnectFlags {
+// ExtractConnectFlags ...
+func ExtractConnectFlags(b byte) ConnectFlags {
 	return ConnectFlags{
 		CleanSession: (b>>1)&1 == 1,
 		Will:         (b>>2)&1 == 1,
@@ -62,11 +63,14 @@ func extractConnectFlags(b byte) ConnectFlags {
 	}
 }
 
-func extractConnectPayload(p *bytes.Reader, f ConnectFlags) (cpp ConnectPayload, err error) {
+// ReadConnectPayload ...
+func ReadConnectPayload(p *bytes.Reader, f ConnectFlags) (cpp ConnectPayload, err error) {
+	p.ReadByte() // Consume null terminator
 	clientIDSize, err := p.ReadByte()
 	if err != nil {
 		return cpp, fmt.Errorf("fail read clientID len %s", err.Error())
 	}
+	fmt.Println("ClientID size:", clientIDSize)
 	cpp.ClientID = make([]byte, clientIDSize)
 	_, err = p.Read(cpp.ClientID)
 	if err != nil {
@@ -128,32 +132,30 @@ func extractConnectPayload(p *bytes.Reader, f ConnectFlags) (cpp ConnectPayload,
 	return cpp, nil
 }
 
-// ExtractConnectPacket ...
-func ExtractConnectPacket(b []byte) (cp Connect, err error) {
-	fixedHeader := b[0]
-	if (fixedHeader >> 4) != TypeConnect {
-		return cp, fmt.Errorf("invalid control packet type: %x", fixedHeader>>4)
-	}
-	cp.Length = binary.BigEndian.Uint16([]byte{b[1], b[2]})
-
-	copy(cp.ProtoName[:], b[4:8])
-	if !bytes.Equal(cp.ProtoName[:], []byte{0x4D, 0x51, 0x54, 0x54}) {
-		return cp, fmt.Errorf("invalid proto name: %v", cp.ProtoName)
-	}
-	cp.ProtoLevel = b[8]
-	if cp.ProtoLevel != SupportedProtoLevel {
-		return cp, fmt.Errorf("unsupported proto level: %x", cp.ProtoLevel)
+// ReadConnectPacket ...
+func ReadConnectPacket(r *bytes.Reader) (cp Connect, err error) {
+	err = VerifyProtoName(r)
+	if err != nil {
+		return cp, fmt.Errorf("invalid proto name: %s", err)
 	}
 
-	fb := b[9]
+	cp.ProtoLevel, err = r.ReadByte()
+	if err != nil {
+		return cp, fmt.Errorf("fail read ProtoLevel %s", err.Error())
+	}
+
+	fb, err := r.ReadByte()
+	if err != nil {
+		return cp, fmt.Errorf("fail read flags byte %s", err.Error())
+	}
 	if fb&0b1 != 0x0 {
 		return cp, fmt.Errorf("invalid reserved bit")
 	}
-	cp.Flags = extractConnectFlags(fb)
+	cp.Flags = ExtractConnectFlags(fb)
 
-	cp.KeepAlive = binary.BigEndian.Uint16([]byte{b[11], b[12]})
+	cp.KeepAlive, err = Read16BitInteger(r)
 
-	cp.Payload, err = extractConnectPayload(bytes.NewReader(b[13:]), cp.Flags)
+	cp.Payload, err = ReadConnectPayload(r, cp.Flags)
 
 	return cp, err
 }

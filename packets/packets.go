@@ -1,10 +1,16 @@
 package packets
 
+import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
+)
+
 const (
 	// TypeConnect - Client request to connect to Server
 	//
 	// Direction: Client to Server
-	TypeConnect = iota + 1
+	TypeConnect byte = iota + 1
 
 	// TypeConnACK - Connect acknowledgment
 	//
@@ -71,3 +77,28 @@ const (
 	// Direction: Client to Server
 	TypeDisconnect
 )
+
+// Read16BitInteger reads 16 bit integer from bytes reader
+func Read16BitInteger(r *bytes.Reader) (uint16, error) {
+	bytes := make([]byte, 2)
+	_, err := r.Read(bytes)
+	if err != nil {
+		return 0, err
+	}
+	return binary.BigEndian.Uint16(bytes), nil
+}
+
+// VerifyProtoName verifies if proto name is equal to ['M','Q','T','T']
+func VerifyProtoName(r *bytes.Reader) error {
+	var expb = [6]byte{0x0, 0x4, 0x4D, 0x51, 0x54, 0x54}
+	for i, exp := range expb {
+		b, err := r.ReadByte()
+		if err != nil {
+			return fmt.Errorf("fail read at %d: %s", i, err.Error())
+		}
+		if b != byte(exp) {
+			return fmt.Errorf("invalid byte at %d: exp: %x, rec: %x", i, exp, b)
+		}
+	}
+	return nil
+}

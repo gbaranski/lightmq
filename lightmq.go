@@ -1,9 +1,11 @@
 package lightmq
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 
+	"github.com/gbaranski/lightmq/handlers"
 	"github.com/gbaranski/lightmq/packets"
 	log "github.com/sirupsen/logrus"
 )
@@ -38,27 +40,40 @@ func (b Broker) Listen() error {
 			return fmt.Errorf("fail accepting connection %s", err.Error())
 		}
 		go b.handleConnection(conn)
+
 	}
 }
 
 func (b Broker) handleConnection(conn net.Conn) {
-	buf := make([]byte, 100)
-	_, err := conn.Read(buf)
-	if err != nil {
-		log.Info("fail read data %s", err.Error())
+	fixedHeader := make([]byte, 2)
+	conn.Read(fixedHeader)
+
+	var handler handlers.Handler
+
+	controlPacketType := fixedHeader[0] >> 4
+	switch controlPacketType {
+	case packets.TypeConnect:
+		handler = handlers.OnConnect
+	default:
+		log.WithField("type", fmt.Sprintf("%0b", controlPacketType)).Error("Unrecognized control packet type")
 		return
 	}
-	cp, err := packets.ExtractConnectPacket(buf)
-	log.WithFields(log.Fields{
-		"clientID":    string(cp.Payload.ClientID),
-		"username":    string(cp.Payload.Username),
-		"password":    string(cp.Payload.Password),
-		"willMessage": string(cp.Payload.WillMessage),
-		"willTopic":   string(cp.Payload.WillTopic),
-		"flags":       fmt.Sprintf("%+v", cp.Flags),
-	}).Info("Received connect packet")
 
+	// Optimize this size
+	data := make([]byte, 65535)
+	len, err := conn.Read(data)
 	if err != nil {
-		log.Error("Fail extract connect packet", err.Error())
+		log.WithField("error", err.Error()).Error("Fail read data")
+		return
 	}
+
+	c := handlers.Connection{
+		Reader: bytes.NewReader(data),
+		Len:    len,
+	}
+	res, err := handler(c)
+	if err != nil {
+		log.Error(err)
+	}
+	fmt.Println("res: ", res)
 }
