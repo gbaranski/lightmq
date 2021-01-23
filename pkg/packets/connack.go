@@ -33,16 +33,17 @@ type ConnACK struct {
 }
 
 // Bytes converts ConnACK to bytes
-func (c ConnACK) Bytes() (b [3]byte) {
+func (c ConnACK) Bytes() (b [4]byte) {
 	b[0] = TypeConnACK << 4 // <- 0b00100000 Fixed Header
+	b[1] = 0x2              // Length of the rest of the payload
 
 	if c.Flags.SessionPresent {
-		b[1] = 0b00000001
+		b[2] = 0b00000001
 	} else {
-		b[1] = 0b00000000
+		b[2] = 0b00000000
 	}
 
-	b[2] = c.ReturnCode
+	b[3] = c.ReturnCode
 
 	return
 }
