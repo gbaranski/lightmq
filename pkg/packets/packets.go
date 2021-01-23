@@ -2,7 +2,6 @@ package packets
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 )
 
@@ -77,16 +76,6 @@ const (
 	// Direction: Client to Server
 	TypeDisconnect
 )
-
-// Read16BitInteger reads 16 bit integer from bytes reader
-func Read16BitInteger(r *bytes.Reader) (uint16, error) {
-	bytes := make([]byte, 2)
-	_, err := r.Read(bytes)
-	if err != nil {
-		return 0, err
-	}
-	return binary.BigEndian.Uint16(bytes), nil
-}
 
 // VerifyProtoName verifies if proto name is equal to ['M','Q','T','T']
 func VerifyProtoName(r *bytes.Reader) error {

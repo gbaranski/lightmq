@@ -3,7 +3,7 @@ package handlers
 import (
 	"fmt"
 
-	"github.com/gbaranski/lightmq/packets"
+	"github.com/gbaranski/lightmq/pkg/packets"
 	log "github.com/sirupsen/logrus"
 )
 

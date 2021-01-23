@@ -6,7 +6,7 @@ import (
 	"net"
 
 	"github.com/gbaranski/lightmq/handlers"
-	"github.com/gbaranski/lightmq/packets"
+	"github.com/gbaranski/lightmq/pkg/packets"
 	log "github.com/sirupsen/logrus"
 )
 

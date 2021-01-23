@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	"github.com/gbaranski/lightmq/pkg/utils"
 )
 
 // ConnectFlags ...
@@ -153,7 +155,7 @@ func ReadConnectPacket(r *bytes.Reader) (cp Connect, err error) {
 	}
 	cp.Flags = ExtractConnectFlags(fb)
 
-	cp.KeepAlive, err = Read16BitInteger(r)
+	cp.KeepAlive, err = utils.Read16BitInteger(r)
 
 	cp.Payload, err = ReadConnectPayload(r, cp.Flags)
 
