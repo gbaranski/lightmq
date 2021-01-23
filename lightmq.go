@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"net"
 	"sync"
 
@@ -67,16 +66,14 @@ func (b Broker) Listen() error {
 func (b Broker) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	fixedHeader := make([]byte, 1)
-	_, err := conn.Read(fixedHeader)
+	fh, err := packets.ReadFixedHeader(conn)
 	if err != nil {
 		log.WithError(err).Error("fail read fixed header")
 		return
 	}
 
-	controlPacketType := fixedHeader[0] >> 4
-	if controlPacketType != packets.TypeConnect {
-		log.WithField("type", controlPacketType).Info("Connection must start with CONNECT packet")
+	if fh.ControlPacketType() != packets.TypeConnect {
+		log.WithField("type", fh.ControlPacketType()).Info("Connection must start with CONNECT packet")
 		return
 	}
 
@@ -108,38 +105,28 @@ func (b Broker) handleConnection(conn net.Conn) {
 
 	err = b.readLoop(conn, client)
 	if err != nil {
-		loge.WithError(err).Error("fail loop conn data")
+		loge.WithError(err).Error("fail readLoop()")
 	}
 }
 
 func (b Broker) readLoop(conn net.Conn, client types.Client) error {
 	r := bufio.NewReader(conn)
 	for {
-		fh, err := r.ReadByte()
+		fh, err := packets.ReadFixedHeader(r)
 		if err != nil {
-			if err == io.EOF {
-				continue
-			}
 			return fmt.Errorf("fail read fixed header %s", err.Error())
 		}
-		if fh == 0 {
-			fmt.Println("Skipping 0")
-			continue
-		}
-
-		controlPacketType := fh >> 4
 
 		var handler handlers.Handler
 
-		switch controlPacketType {
+		switch fh.ControlPacketType() {
 		case packets.TypeSubscribe:
 			fmt.Println("Subscribe not implemented yet")
 			continue
 		case packets.TypePingREQ:
 			handler = handlers.OnPingReq
 		default:
-			fmt.Printf("fh: %0b\n", fh)
-			return fmt.Errorf("unrecognized control packet type %x", controlPacketType)
+			return fmt.Errorf("unrecognized control packet type %x", fh.ControlPacketType())
 		}
 
 		len, err := utils.ReadLength(r)
@@ -153,9 +140,13 @@ func (b Broker) readLoop(conn net.Conn, client types.Client) error {
 			return err
 		}
 
-		err = handler(r, conn, client)
+		err = handler(handlers.Packet{
+			Client: client,
+			Reader: r,
+			Writer: conn,
+		})
 		if err != nil {
-			return fmt.Errorf("fail handle %x: %s", controlPacketType, err.Error())
+			return fmt.Errorf("fail handle %x: %s", fh.ControlPacketType(), err.Error())
 		}
 	}
 

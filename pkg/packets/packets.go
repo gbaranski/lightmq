@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 )
 
 const (
@@ -112,4 +113,25 @@ func VerifyProtoName(r *bytes.Reader) error {
 		}
 	}
 	return nil
+}
+
+// FixedHeader ...
+type FixedHeader byte
+
+// ControlPacketType ...
+func (h FixedHeader) ControlPacketType() byte {
+	return byte(h >> 4)
+}
+
+// ReadFixedHeader reads fixed header from io.Reader
+func ReadFixedHeader(r io.Reader) (FixedHeader, error) {
+	b := make([]byte, 1)
+	n, err := r.Read(b)
+	if err != nil {
+		return 0, err
+	}
+	if n != 1 {
+		return 0, fmt.Errorf("read invalid amount, exp: 1, n: %d", n)
+	}
+	return FixedHeader(b[0]), nil
 }
