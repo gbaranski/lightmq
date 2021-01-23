@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 
 	"github.com/gbaranski/lightmq/handlers"
 	"github.com/gbaranski/lightmq/pkg/packets"
@@ -14,16 +15,30 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ClientList ...
+type ClientList struct {
+	s  []types.Client
+	mu sync.RWMutex
+}
+
+// Add adds new client
+func (l *ClientList) Add(c types.Client) {
+	l.mu.Lock()
+	l.s = append(l.s, c)
+	l.mu.Unlock()
+}
+
 // Broker ...
 type Broker struct {
-	opts    Options
-	clients []types.Client
+	opts       Options
+	clientList *ClientList
 }
 
 // New ...
 func New(opts Options) (Broker, error) {
 	broker := Broker{
-		opts: opts.Parse(),
+		opts:       opts.Parse(),
+		clientList: &ClientList{},
 	}
 	return broker, nil
 }
@@ -71,7 +86,6 @@ func (b Broker) handleConnection(conn net.Conn) {
 		return
 	}
 
-	// Optimize this size
 	data := make([]byte, len)
 	_, err = conn.Read(data)
 	if err != nil {
@@ -83,7 +97,7 @@ func (b Broker) handleConnection(conn net.Conn) {
 		log.Error("fail connection %s", err.Error())
 		return
 	}
-	b.clients = append(b.clients, client)
+	go b.clientList.Add(client)
 	loge := log.WithFields(log.Fields{
 		"clientID": client.ClientID,
 		"username": client.Username,
