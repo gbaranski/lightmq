@@ -67,7 +67,6 @@ func ExtractConnectFlags(b byte) ConnectFlags {
 
 // ReadConnectPayload ...
 func ReadConnectPayload(p *bytes.Reader, f ConnectFlags) (cpp ConnectPayload, err error) {
-	p.ReadByte() // Consume null terminator
 	clientIDSize, err := p.ReadByte()
 	if err != nil {
 		return cpp, fmt.Errorf("fail read clientID len %s", err.Error())
@@ -156,6 +155,11 @@ func ReadConnectPacket(r *bytes.Reader) (cp Connect, err error) {
 	cp.Flags = ExtractConnectFlags(fb)
 
 	cp.KeepAlive, err = utils.Read16BitInteger(r)
+	if err != nil {
+		return cp, err
+	}
+
+	r.ReadByte() // For some reason it's required. Looks like that there are 1 byte more than expected
 
 	cp.Payload, err = ReadConnectPayload(r, cp.Flags)
 
