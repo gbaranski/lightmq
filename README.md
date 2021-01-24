@@ -25,6 +25,12 @@ LightMQ is Client Server messaging protocol. It is and will be lightweight and e
   - [CONNACK](#connack)
     - [Payload structure](#payload-structure-1)
     - [Return Code](#return-code)
+  - [SEND](#send)
+    - [Payload structure](#payload-structure-2)
+    - [Message ID](#message-id)
+    - [Message Flags](#message-flags)
+      - [ACK](#ack)
+    - [Data](#data)
 - [References](#references)
 - [TODO](#todo)
 
@@ -132,7 +138,7 @@ Each packet have following structure:
 | Byte 2...66 - [Paylod signature](#variable-header) |   -   |   -   |   -   |   -   |   -   |   -   |   -   |   -   |
 | Byte 67 - [Payload size MSB](#payload-size)        |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 | Byte 68 - [Payload size LSB](#payload-size)        |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 68 - [Payload](#payload)                      |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 69...65535 - [Payload](#payload)              |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 
 <br/>
 
@@ -183,6 +189,36 @@ The CONNACK Packet is the packet sent by the Server in response to a CONNECT Pac
 | 0x4      | Unauthorized                 |
 | 0x5-0xFF | Reserved for future use      |
 
+
+## SEND
+A SEND Packet is sent from a Client to a Server or from Server to a Client to transport an Application Message.
+
+
+### Payload structure
+| Name                    | Size              |
+| ----------------------- | ----------------- |
+| [ID](#message-id)       | 2 bytes           |
+| [Flags](#message-flags) | 1 byte            |
+| [Data](#data)           | Up to 65464 bytes |
+
+### Message ID
+Random bytes used as correlation data.
+
+### Message Flags
+Random bytes used as correlation data.
+
+| Bit           |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
+| ------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Message Flags |   R   |   R   |   R   |   R   |   R   |   R   |   R   |  ACK  |
+|               |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   X   |
+
+*R - Reserved*
+
+#### ACK
+Flag which tells if acknowledgement is expected
+
+### Data
+Data of the message
 
 # References
 
