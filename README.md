@@ -64,3 +64,7 @@ Each packet have following structure:
 ## CONNACK
 
 
+# References
+
+1. Daniel J. Bernstein, Niels Duif, Tanja Lange, Peter Schwabe, Bo-Yin Yang, [High-speed high-security signatures](https://ed25519.cr.yp.to/ed25519-20110926.pdf) 
+    > Public keys are 32 bytes, and signatures are 64 bytes.
