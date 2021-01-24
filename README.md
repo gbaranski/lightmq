@@ -18,7 +18,7 @@ uint16_t value = (bytes[0] << 8) | bytes[1]; // 8208
 ```
 
 Calculating 16-bit unsigned integer from two bytes in Go
-```c
+```go
 import (
     "encoding/binary"
 )
