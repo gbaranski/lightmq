@@ -1,12 +1,11 @@
-package handlers
+package lightmq
 
 import (
 	"github.com/gbaranski/lightmq/pkg/packets"
 	log "github.com/sirupsen/logrus"
 )
 
-// OnPingReq ...
-func OnPingReq(p Packet) error {
+func onPingReq(p packet) error {
 	log.Info("Received PINGREQ")
 	res := packets.PingRESP{}.Bytes()
 	_, err := p.Write(res[:])

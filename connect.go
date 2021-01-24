@@ -1,16 +1,14 @@
-package handlers
+package lightmq
 
 import (
 	"bytes"
 	"net"
 
 	"github.com/gbaranski/lightmq/pkg/packets"
-	"github.com/gbaranski/lightmq/pkg/types"
 	log "github.com/sirupsen/logrus"
 )
 
-// OnConnect should be executed when CONNECT packet is received
-func OnConnect(r *bytes.Reader, conn net.Conn) (client types.Client, err error) {
+func onConnect(r *bytes.Reader, conn net.Conn) (client Client, err error) {
 	client.IPAddress = conn.RemoteAddr()
 	log.WithField("ip", client.IPAddress.String()).Info("Starting new connection")
 
@@ -32,7 +30,7 @@ func OnConnect(r *bytes.Reader, conn net.Conn) (client types.Client, err error) 
 
 	payload, err := packets.ReadConnectPayload(r, h.Flags)
 	if err != nil {
-		return types.Client{}, err
+		return Client{}, err
 	}
 	client.ClientID = string(payload.ClientID)
 	client.Username = string(payload.Username)
@@ -45,7 +43,7 @@ func OnConnect(r *bytes.Reader, conn net.Conn) (client types.Client, err error) 
 	}.Bytes()
 	_, err = conn.Write(cack[:])
 	if err != nil {
-		return types.Client{}, err
+		return Client{}, err
 	}
 
 	return client, nil

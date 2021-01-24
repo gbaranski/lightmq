@@ -4,40 +4,51 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"net"
-	"sync"
 
-	"github.com/gbaranski/lightmq/handlers"
 	"github.com/gbaranski/lightmq/pkg/packets"
-	"github.com/gbaranski/lightmq/pkg/types"
 	"github.com/gbaranski/lightmq/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-// ClientList ...
-type ClientList struct {
-	s  []types.Client
-	mu sync.RWMutex
+// Client ...
+type Client struct {
+	ClientID  string
+	Username  string
+	IPAddress net.Addr
+	KeepAlive uint16
 }
 
-// Add adds new client
-func (l *ClientList) Add(c types.Client) {
-	l.mu.Lock()
-	l.s = append(l.s, c)
-	l.mu.Unlock()
+type packet struct {
+	Client          Client
+	FixedHeader     packets.FixedHeader
+	RemainingLength uint32
+	io.ByteReader
+	io.Reader
+	io.Writer
 }
+
+// Topic ...
+type Topic struct {
+	Name        string
+	Subscribers map[string]struct{}
+}
+
+// Handler is type for packet handling function
+type handler = func(p packet) error
 
 // Broker ...
 type Broker struct {
-	opts       Options
-	clientList *ClientList
+	opts        Options
+	ClientStore *ClientStore
 }
 
 // New ...
 func New(opts Options) (Broker, error) {
 	broker := Broker{
-		opts:       opts.Parse(),
-		clientList: &ClientList{},
+		opts:        opts.Parse(),
+		ClientStore: NewClientStore(),
 	}
 	return broker, nil
 }
@@ -89,12 +100,12 @@ func (b Broker) handleConnection(conn net.Conn) {
 		log.WithField("error", err.Error()).Error("Fail read data")
 		return
 	}
-	client, err := handlers.OnConnect(bytes.NewReader(data), conn)
+	client, err := onConnect(bytes.NewReader(data), conn)
 	if err != nil {
 		log.Error("fail connection %s", err.Error())
 		return
 	}
-	go b.clientList.Add(client)
+	go b.ClientStore.Add(client)
 	loge := log.WithFields(log.Fields{
 		"clientID": client.ClientID,
 		"username": client.Username,
@@ -109,7 +120,7 @@ func (b Broker) handleConnection(conn net.Conn) {
 	}
 }
 
-func (b Broker) readLoop(conn net.Conn, client types.Client) error {
+func (b Broker) readLoop(conn net.Conn, client Client) error {
 	r := bufio.NewReader(conn)
 	for {
 		fh, err := packets.ReadFixedHeader(r)
@@ -117,16 +128,16 @@ func (b Broker) readLoop(conn net.Conn, client types.Client) error {
 			return fmt.Errorf("fail read fixed header %s", err.Error())
 		}
 
-		var handler handlers.Handler
+		var handler handler
 
 		switch fh.ControlPacketType() {
 		case packets.TypeSubscribe:
 			fmt.Println("Subscribe not implemented yet")
 			continue
 		case packets.TypePingREQ:
-			handler = handlers.OnPingReq
+			handler = onPingReq
 		case packets.TypePublish:
-			handler = handlers.OnPublish
+			handler = onPublish
 		default:
 			return fmt.Errorf("unrecognized control packet type %x", fh.ControlPacketType())
 		}
@@ -136,7 +147,7 @@ func (b Broker) readLoop(conn net.Conn, client types.Client) error {
 			return fmt.Errorf("fail read len %s", err.Error())
 		}
 
-		err = handler(handlers.Packet{
+		err = handler(packet{
 			Client:          client,
 			FixedHeader:     fh,
 			RemainingLength: len,

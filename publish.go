@@ -1,4 +1,4 @@
-package handlers
+package lightmq
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 )
 
 // OnPublish should be executed on PUBLISH packet
-func OnPublish(p Packet) error {
+func onPublish(p packet) error {
 	vh, err := packets.ReadPublishVariableHeader(p.Reader)
 	if err != nil {
 		return fmt.Errorf("fail read variable header %s", err.Error())
