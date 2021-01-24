@@ -12,7 +12,6 @@ LightMQ is Client Server messaging protocol. It is and will be lightweight and e
       - [Example](#example)
 - [Packet structure](#packet-structure)
   - [Packet type](#packet-type)
-  - [Variable header](#variable-header)
   - [Signature](#signature)
   - [Payload size](#payload-size)
   - [Payload](#payload)
@@ -96,19 +95,9 @@ Represented in 1 byte(8 bits). **MUST** be one of following:
 
 If Client send invalid Packet type, Server **MAY** close the connection.
 
-## Variable header
-
-**Position**: Starts at byte 1
-
-**Size**: 1 byte(8 bits)
-
-**MUST** exist in every packet data
-
-Used to describe the packet.
-
 ## Signature
 
-**Position**: Starts at byte 2
+**Position**: Starts at byte 1
 
 **Size**: 64 bytes(512 bits)<sup>[1](#references)</sup>
 
@@ -120,7 +109,7 @@ Digital signature created using [Ed25519 scheme](https://en.wikipedia.org/wiki/E
 
 
 ## Payload size
-**Position**: Starts at byte 66
+**Position**: Starts at byte 65
 
 **Size**: 2 bytes(16 bits)
 
@@ -129,7 +118,7 @@ Digital signature created using [Ed25519 scheme](https://en.wikipedia.org/wiki/E
 Represented as [16-bit unsigned integer](#16-bit-unsigned-integer). Used to define size for [payload](#payload). Can be equal 0 meaning payload does not exist.
 
 ## Payload
-**Position**: Starts at byte 68
+**Position**: Starts at byte 67
 
 **Size**: Defined by [Payload length](#payload-length)
 
@@ -137,14 +126,13 @@ Represented as [16-bit unsigned integer](#16-bit-unsigned-integer). Used to defi
 
 Each packet have following structure:
 
-| Bit                                                |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
-| -------------------------------------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Byte 0 - [Packet type](#packet-type)               |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 1 - [Variable header](#variable-header)       |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 2...66 - [Paylod signature](#variable-header) |   -   |   -   |   -   |   -   |   -   |   -   |   -   |   -   |
-| Byte 67 - [Payload size MSB](#payload-size)        |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 68 - [Payload size LSB](#payload-size)        |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 69...65535 - [Payload](#payload)              |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Bit                                          |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
+| -------------------------------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Byte 0 - [Packet type](#packet-type)         |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 1...65 - [Paylod signature](#signature) |   -   |   -   |   -   |   -   |   -   |   -   |   -   |   -   |
+| Byte 66 - [Payload size MSB](#payload-size)  |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 67 - [Payload size LSB](#payload-size)  |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 68...65535 - [Payload](#payload)        |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 
 <br/>
 
