@@ -8,8 +8,8 @@ LightMQ is Client Server messaging protocol. It is and will be lightweight and e
 - [Data representations](#data-representations)
   - [Bits](#bits)
   - [16-bit unsigned integer](#16-bit-unsigned-integer)
-  - [UTF-8 Length prefixed string](#utf-8-length-prefixed-string)
-    - [Example length prefixed string](#example-length-prefixed-string)
+  - [UTF8 String](#utf8-string)
+      - [Example](#example)
 - [Packet structure](#packet-structure)
   - [Packet type](#packet-type)
   - [Variable header](#variable-header)
@@ -21,6 +21,7 @@ LightMQ is Client Server messaging protocol. It is and will be lightweight and e
   - [CONNECT](#connect)
     - [Payload structure](#payload-structure)
     - [ClientID](#clientid)
+    - [Challenge](#challenge)
   - [CONNACK](#connack)
 - [References](#references)
 - [TODO](#todo)
@@ -49,10 +50,10 @@ bytes := []byte{0x20, 0x10} // 16-bit integer in bytes
 value := binary.BigEndian.Uint16(bytes) // 8208
 ```
 
-## UTF-8 Length prefixed string
+## UTF8 String
 UTF-8 Length prefixed strings means that length of a string is stored explicitly, before the actual text. Length **MUST** be single byte value. String can be up to 256 bytes long.
 
-### Example length prefixed string
+#### Example
 | Bit             | Value |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
 | --------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | Byte 0 - Length |   5   |   0   |   0   |   0   |   0   |   0   |   1   |   0   |   1   |
@@ -143,19 +144,23 @@ CONNECT packet may occur only once, second CONNECT packet **MUST** close connect
 
 ### Payload structure
 
-| Bit                            |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
-| ------------------------------ | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Byte 0 - ClientID Length       |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 1 - [ClientID](#clientid) |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Name                  | Size          |
+| --------------------- | ------------- |
+| ClientID size         | 1 byte        |
+| [ClientID](#clientid) | Prefixed size |
+| Challenge             | 8 bytes       |
 
 <br/>
 
 ### ClientID
-ClientID is [UTF-8 Length prefixed string](#utf-8-length-prefixed-string)
+ClientID is [UTF-8 Length prefixed string](#utf8-string)
 
 **MUST** be unique across different clients. 
 
 If Client with same ClientID already exists, server **MUST** disconnect old client.
+
+### Challenge
+Challenge is random byte string of 8 bytes in size, it is used to prevent hijacking signature of CONNECT message.
 
 ## CONNACK
 
