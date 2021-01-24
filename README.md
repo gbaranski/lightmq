@@ -27,6 +27,20 @@ bytes := []byte{0x20, 0x10} // 16-bit integer in bytes
 value := binary.BigEndian.Uint16(bytes) // 8208
 ```
 
+## UTF-8 Length prefixed string
+UTF-8 Length prefixed strings means that length of a string is stored explicitly, before the actual text. Length **MUST** be single byte value. String can be up to 256 bytes long.
+
+### Example length prefixed string
+| Bit             | Value |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
+| --------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Byte 0 - Length |   5   |   0   |   0   |   0   |   0   |   0   |   1   |   0   |   1   |
+| Byte 1 - Char   |   H   |   0   |   1   |   0   |   0   |   1   |   0   |   0   |   0   |
+| Byte 2 - Char   |   E   |   0   |   1   |   0   |   0   |   0   |   1   |   0   |   1   |
+| Byte 3 - Char   |   L   |   0   |   1   |   0   |   0   |   1   |   1   |   0   |   0   |
+| Byte 4 - Char   |   L   |   0   |   1   |   0   |   0   |   1   |   1   |   0   |   0   |
+| Byte 5 - Char   |   O   |   0   |   1   |   0   |   0   |   1   |   1   |   1   |   1   |
+
+
 # Packet structure
 ## Packet type
 
