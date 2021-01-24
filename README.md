@@ -29,3 +29,7 @@ First 8 bits of EVERY packet data. Used to identify packet type. Represents 8-bi
 |                     | 8     |                  |                                                    |
 |                     | 9     |                  |                                                    |
 
+## Variable header
+
+First 8 bits AFTER [Fixed header](#fixed-header) of EVERY packet data. Used to describe the packet
+
