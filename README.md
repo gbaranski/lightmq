@@ -77,6 +77,8 @@ Used to describe the packet.
 
 **MUST** exist in every packet data
 
+Server **SHOULD** verify if signature is valid.
+
 Digital signature created using [Ed25519 scheme](https://en.wikipedia.org/wiki/EdDSA) by signing the [payload](#payload) with private key, so server can verify [payload](#signature) using Client Public Key.
 
 
