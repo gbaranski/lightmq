@@ -28,22 +28,20 @@ value := binary.BigEndian.Uint16(bytes) // 8208
 ```
 
 # Packet structure
-## Fixed header
+## Packet type
 
-First 8 bits of EVERY packet data. Used to identify packet type. Represents 8-bit unsigned value, it can be one of following:
+**Position**: Starts at byte 0
 
-| Name                | Value | Direction        | Description                                        |
-| ------------------- | ----- | ---------------- | -------------------------------------------------- |
-|                     | 0     |                  |                                                    |
-| [CONNECT](#connect) | 1     | Client -> Server | Client request to connect to Server                |
-| [CONNACK](#connack) | 2     | Server -> Client | Server acknowledges connection request from Client |
-|                     | 3     |                  |                                                    |
-|                     | 4     |                  |                                                    |
-|                     | 5     |                  |                                                    |
-|                     | 6     |                  |                                                    |
-|                     | 7     |                  |                                                    |
-|                     | 8     |                  |                                                    |
-|                     | 9     |                  |                                                    |
+**Size**: 1 byte(8 bits)
+
+Each LightMQ Packet Data **MUST** contain the Packet type. Represented in 1 byte(8 bits). **MUST** be one of following:
+
+| Name                | Dec | Bin        | Direction        | Description                                        |
+| ------------------- | --- | ---------- | ---------------- | -------------------------------------------------- |
+| [CONNECT](#connect) | 1   | `00000001` | Client -> Server | Client request to connect to Server                |
+| [CONNACK](#connack) | 2   | `00000010` | Server -> Client | Server acknowledges connection request from Client |
+
+If Client send invalid Packet type, Server **MAY** close the connection.
 
 ## Variable header
 
@@ -63,7 +61,7 @@ Each packet have following structure:
 
 | Bit                                                |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
 | -------------------------------------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Byte 0 - [Fixed Header](#fixed-header)             |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 0 - [Packet type](#packet-type)               |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 | Byte 1 - [Variable header](#variable-header)       |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 | Byte 2...66 - [Paylod signature](#variable-header) |   -   |   -   |   -   |   -   |   -   |   -   |   -   |   -   |
 | Byte 67 - [Payload length MSB](#variable-header)   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
