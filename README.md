@@ -23,6 +23,8 @@ LightMQ is Client Server messaging protocol. It is and will be lightweight and e
     - [ClientID](#clientid)
     - [Challenge](#challenge)
   - [CONNACK](#connack)
+    - [Payload structure](#payload-structure-1)
+    - [Return Code](#return-code)
 - [References](#references)
 - [TODO](#todo)
 
@@ -163,6 +165,23 @@ If Client with same ClientID already exists, server **MUST** disconnect old clie
 Challenge is random byte string of 8 bytes in size, it is used to prevent hijacking signature of CONNECT message.
 
 ## CONNACK
+The CONNACK Packet is the packet sent by the Server in response to a CONNECT Packet received from a Client. The first packet sent from the Server to the Client **MUST** be a CONNACK Packet.
+
+### Payload structure
+| Name                        | Size   |
+| --------------------------- | ------ |
+| [Return Code](#return-code) | 1 byte |
+
+### Return Code
+
+| Value    | Description                  |
+| -------- | ---------------------------- |
+| 0x0      | Connection Accepted          |
+| 0x1      | Unsupported Protocol Version |
+| 0x2      | Server unavailable           |
+| 0x3      | Malformed payload            |
+| 0x4      | Unauthorized                 |
+| 0x5-0xFF | Reserved for future use      |
 
 
 # References
