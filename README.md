@@ -54,3 +54,13 @@ Each packet have following structure:
 | Byte 68 - [Payload length LSB](#variable-header)   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 
 
+
+# Packet types
+
+## CONNECT
+
+
+
+## CONNACK
+
+
