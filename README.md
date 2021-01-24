@@ -34,7 +34,9 @@ value := binary.BigEndian.Uint16(bytes) // 8208
 
 **Size**: 1 byte(8 bits)
 
-Each LightMQ Packet Data **MUST** contain the Packet type. Represented in 1 byte(8 bits). **MUST** be one of following:
+**MUST** exist in every packet data
+
+Represented in 1 byte(8 bits). **MUST** be one of following:
 
 | Name                | Dec | Bin        | Direction        | Description                                        |
 | ------------------- | --- | ---------- | ---------------- | -------------------------------------------------- |
@@ -45,15 +47,38 @@ If Client send invalid Packet type, Server **MAY** close the connection.
 
 ## Variable header
 
-First 8 bits AFTER [Fixed header](#fixed-header) of EVERY packet data. Used to describe the packet
+**Position**: Starts at byte 1
+
+**Size**: 1 byte(8 bits)
+
+**MUST** exist in every packet data
+
+Used to describe the packet.
 
 ## Signature
-Digital signature created using [Ed25519 scheme](https://en.wikipedia.org/wiki/EdDSA). Signatures are 512 bits(64 bytes) in size <sup>[1](#references)</sup>. They're raw bytes without any encoding
+
+**Position**: Starts at byte 2
+
+**Size**: 64 bytes(512 bits)<sup>[1](#references)</sup>
+
+**MUST** exist in every packet data
+
+Digital signature created using [Ed25519 scheme](https://en.wikipedia.org/wiki/EdDSA) by signing the [payload](#payload) with private key, so server can verify [payload](#signature) using Client Public Key.
 
 
-## Payload length
+## Payload size
+**Position**: Starts at byte 66
 
-First 16 bits after [Variable header](#variable-header) of EVERY packet data. Used to define how long the payload will be. Represents 16-bit unsigned value. Value is in [big-endian](https://en.wikipedia.org/wiki/Endianness) order, that means first byte is [MSB(Most significant bit)](https://en.wikipedia.org/wiki/Bit_numbering#Most_significant_bit) and the second one is [LSB(Least significant bit)](https://en.wikipedia.org/wiki/Bit_numbering#Least_significant_bit)
+**Size**: 2 bytes(16 bits)
+
+**MUST** exist in every packet data
+
+Represented as [16-bit unsigned integer](#16-bit-unsigned-integer). Used to define size for [payload](#payload). Can be equal 0 meaning payload does not exist.
+
+## Payload
+**Position**: Starts at byte 68
+
+**Size**: Defined by [Payload length](#payload-length)
 
 ## Packet structure table
 
@@ -64,8 +89,8 @@ Each packet have following structure:
 | Byte 0 - [Packet type](#packet-type)               |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 | Byte 1 - [Variable header](#variable-header)       |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 | Byte 2...66 - [Paylod signature](#variable-header) |   -   |   -   |   -   |   -   |   -   |   -   |   -   |   -   |
-| Byte 67 - [Payload length MSB](#variable-header)   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 68 - [Payload length LSB](#variable-header)   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 67 - [Payload size MSB](#payload-size)        |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 68 - [Payload size LSB](#payload-size)        |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 
 
 
