@@ -29,7 +29,6 @@ LightMQ is Client Server messaging protocol. It is and will be lightweight and e
     - [Payload structure](#payload-structure-2)
     - [Message ID](#message-id)
     - [Message Flags](#message-flags)
-      - [ACK](#ack)
     - [Data](#data)
   - [SENDRESP](#sendresp)
     - [Payload structure](#payload-structure-3)
@@ -216,9 +215,6 @@ Special flags for message, currently all are reserved for future use
 |               |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |
 
 *R - Reserved for future use*
-
-#### ACK
-Flag which tells if acknowledgement is expected
 
 ### Data
 Data of the message
