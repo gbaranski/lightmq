@@ -3,6 +3,28 @@
 # Abstract
 LightMQ is Client Server messaging protocol. It is and will be lightweight and easy in client implementation. Protocol is originally intented to work with Internet of Things, where easy in making own implementation combined with simplicity and lightweightness is important.
 
+- [LightMQ](#lightmq)
+- [Abstract](#abstract)
+- [Data representations](#data-representations)
+  - [Bits](#bits)
+  - [16-bit unsigned integer](#16-bit-unsigned-integer)
+  - [UTF-8 Length prefixed string](#utf-8-length-prefixed-string)
+    - [Example length prefixed string](#example-length-prefixed-string)
+- [Packet structure](#packet-structure)
+  - [Packet type](#packet-type)
+  - [Variable header](#variable-header)
+  - [Signature](#signature)
+  - [Payload size](#payload-size)
+  - [Payload](#payload)
+  - [Packet structure table](#packet-structure-table)
+- [Packet types](#packet-types)
+  - [CONNECT](#connect)
+    - [Payload structure](#payload-structure)
+    - [ClientID](#clientid)
+  - [CONNACK](#connack)
+- [References](#references)
+- [TODO](#todo)
+
 
 # Data representations
 ## Bits
@@ -113,13 +135,13 @@ Each packet have following structure:
 
 # Packet types
 
-# CONNECT
+## CONNECT
 After a Network Connection is established by a Client to a Server, the first Packet sent from the Client to the Server **MUST** be a CONNECT Packet.
 
 CONNECT packet may occur only once, second CONNECT packet **MUST** close connection.
 
 
-## CONNECT Payload structure
+### Payload structure
 
 | Bit                            |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
 | ------------------------------ | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
