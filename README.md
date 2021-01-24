@@ -107,14 +107,33 @@ Each packet have following structure:
 | Byte 2...66 - [Paylod signature](#variable-header) |   -   |   -   |   -   |   -   |   -   |   -   |   -   |   -   |
 | Byte 67 - [Payload size MSB](#payload-size)        |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 | Byte 68 - [Payload size LSB](#payload-size)        |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 68 - [Payload](#payload)                      |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 
-
+<br/>
 
 # Packet types
 
-## CONNECT
+# CONNECT
+After a Network Connection is established by a Client to a Server, the first Packet sent from the Client to the Server **MUST** be a CONNECT Packet.
+
+CONNECT packet may occur only once, second CONNECT packet **MUST** close connection.
 
 
+## CONNECT Payload structure
+
+| Bit                            |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
+| ------------------------------ | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Byte 0 - ClientID Length       |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 1 - [ClientID](#clientid) |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+
+<br/>
+
+### ClientID
+ClientID is [UTF-8 Length prefixed string](#utf-8-length-prefixed-string)
+
+**MUST** be unique across different clients. 
+
+If Client with same ClientID already exists, server **MUST** disconnect old client.
 
 ## CONNACK
 
