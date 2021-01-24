@@ -40,3 +40,17 @@ Digital signature created using [Ed25519 scheme](https://en.wikipedia.org/wiki/E
 ## Payload length
 
 First 16 bits after [Variable header](#variable-header) of EVERY packet data. Used to define how long the payload will be. Represents 16-bit unsigned value. Value is in [big-endian](https://en.wikipedia.org/wiki/Endianness) order, that means first byte is [MSB(Most significant bit)](https://en.wikipedia.org/wiki/Bit_numbering#Most_significant_bit) and the second one is [LSB(Least significant bit)](https://en.wikipedia.org/wiki/Bit_numbering#Least_significant_bit)
+
+## Packet structure table
+
+Each packet have following structure:
+
+| Bit                                                |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
+| -------------------------------------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Byte 0 - [Fixed Header](#fixed-header)             |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 1 - [Variable header](#variable-header)       |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 2...66 - [Paylod signature](#variable-header) |   -   |   -   |   -   |   -   |   -   |   -   |   -   |   -   |
+| Byte 67 - [Payload length MSB](#variable-header)   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 68 - [Payload length LSB](#variable-header)   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+
+
