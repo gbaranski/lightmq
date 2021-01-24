@@ -31,6 +31,9 @@ LightMQ is Client Server messaging protocol. It is and will be lightweight and e
     - [Message Flags](#message-flags)
       - [ACK](#ack)
     - [Data](#data)
+  - [SENDRESP](#sendresp)
+    - [Payload structure](#payload-structure-3)
+    - [Message ID](#message-id-1)
 - [References](#references)
 - [TODO](#todo)
 
@@ -199,26 +202,40 @@ A SEND Packet is sent from a Client to a Server or from Server to a Client to tr
 | ----------------------- | ----------------- |
 | [ID](#message-id)       | 2 bytes           |
 | [Flags](#message-flags) | 1 byte            |
-| [Data](#data)           | Up to 65464 bytes |
+| [Data](#data)           | Up to 65463 bytes |
 
 ### Message ID
 Random bytes used as correlation data.
 
 ### Message Flags
-Random bytes used as correlation data.
+Special flags for message, currently all are reserved for future use
 
 | Bit           |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
 | ------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Message Flags |   R   |   R   |   R   |   R   |   R   |   R   |   R   |  ACK  |
-|               |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   X   |
+| Message Flags |   R   |   R   |   R   |   R   |   R   |   R   |   R   |   R   |
+|               |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |
 
-*R - Reserved*
+*R - Reserved for future use*
 
 #### ACK
 Flag which tells if acknowledgement is expected
 
 ### Data
 Data of the message
+
+
+## SENDRESP
+A SENDRESP Packet is sent from a Client to a Server or from Server to a Client as a response to SEND.
+
+
+### Payload structure
+| Name              | Size              |
+| ----------------- | ----------------- |
+| [ID](#message-id) | 2 bytes           |
+| [Data](#data)     | Up to 65464 bytes |
+
+### Message ID
+Random bytes used as correlation data.
 
 # References
 
