@@ -33,3 +33,6 @@ First 8 bits of EVERY packet data. Used to identify packet type. Represents 8-bi
 
 First 8 bits AFTER [Fixed header](#fixed-header) of EVERY packet data. Used to describe the packet
 
+## Signature
+Digital signature created using [Ed25519 scheme](https://en.wikipedia.org/wiki/EdDSA). Signatures are 512 bits(64 bytes) in size <sup>[1](#references)</sup>. They're raw bytes without any encoding
+
