@@ -36,3 +36,7 @@ First 8 bits AFTER [Fixed header](#fixed-header) of EVERY packet data. Used to d
 ## Signature
 Digital signature created using [Ed25519 scheme](https://en.wikipedia.org/wiki/EdDSA). Signatures are 512 bits(64 bytes) in size <sup>[1](#references)</sup>. They're raw bytes without any encoding
 
+
+## Payload length
+
+First 16 bits after [Variable header](#variable-header) of EVERY packet data. Used to define how long the payload will be. Represents 16-bit unsigned value. Value is in [big-endian](https://en.wikipedia.org/wiki/Endianness) order, that means first byte is [MSB(Most significant bit)](https://en.wikipedia.org/wiki/Bit_numbering#Most_significant_bit) and the second one is [LSB(Least significant bit)](https://en.wikipedia.org/wiki/Bit_numbering#Least_significant_bit)
