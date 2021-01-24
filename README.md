@@ -85,10 +85,14 @@ UTF-8 Length prefixed strings means that length of a string is stored explicitly
 
 Represented in 1 byte(8 bits). **MUST** be one of following:
 
-| Name                | Dec | Bin        | Direction        | Description                                        |
-| ------------------- | --- | ---------- | ---------------- | -------------------------------------------------- |
-| [CONNECT](#connect) | 1   | `00000001` | Client -> Server | Client request to connect to Server                |
-| [CONNACK](#connack) | 2   | `00000010` | Server -> Client | Server acknowledges connection request from Client |
+|         Name          |  Dec  |    Bin     |     Direction     | Description                                        |
+| :-------------------: | :---: | :--------: | :---------------: | -------------------------------------------------- |
+|       Reserved        |   1   | `00000001` |       None        | For use in future                                  |
+|  [CONNECT](#connect)  |   1   | `00000001` | Client -> Server  | Client request to connect to Server                |
+|  [CONNACK](#connack)  |   2   | `00000010` | Server -> Client  | Server acknowledges connection request from Client |
+|     [SEND](#send)     |   3   | `00000011` | Server <-> Client | Send messages with data                            |
+| [SENDRESP](#sendresp) |   4   | `00000100` | Server <-> Client | Send response to message                           |
+|       Reserved        | 5-256 | `00000101` |       None        | For use in future                                  |
 
 If Client send invalid Packet type, Server **MAY** close the connection.
 
