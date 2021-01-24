@@ -74,7 +74,7 @@ func (b Broker) Listen() error {
 	}
 }
 
-func (b Broker) handleConnection(conn net.Conn) {
+func (b *Broker) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	fh, err := packets.ReadFixedHeader(conn)
@@ -100,7 +100,7 @@ func (b Broker) handleConnection(conn net.Conn) {
 		log.WithField("error", err.Error()).Error("Fail read data")
 		return
 	}
-	client, err := onConnect(bytes.NewReader(data), conn)
+	client, err := b.onConnect(bytes.NewReader(data), conn)
 	if err != nil {
 		log.Error("fail connection %s", err.Error())
 		return
@@ -120,7 +120,7 @@ func (b Broker) handleConnection(conn net.Conn) {
 	}
 }
 
-func (b Broker) readLoop(conn net.Conn, client Client) error {
+func (b *Broker) readLoop(conn net.Conn, client Client) error {
 	r := bufio.NewReader(conn)
 	for {
 		fh, err := packets.ReadFixedHeader(r)
@@ -135,9 +135,9 @@ func (b Broker) readLoop(conn net.Conn, client Client) error {
 			fmt.Println("Subscribe not implemented yet")
 			continue
 		case packets.TypePingREQ:
-			handler = onPingReq
+			handler = b.onPingReq
 		case packets.TypePublish:
-			handler = onPublish
+			handler = b.onPublish
 		default:
 			return fmt.Errorf("unrecognized control packet type %x", fh.ControlPacketType())
 		}

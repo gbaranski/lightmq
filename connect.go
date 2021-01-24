@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func onConnect(r *bytes.Reader, conn net.Conn) (client Client, err error) {
+func (b *Broker) onConnect(r *bytes.Reader, conn net.Conn) (client Client, err error) {
 	client.IPAddress = conn.RemoteAddr()
 	log.WithField("ip", client.IPAddress.String()).Info("Starting new connection")
 

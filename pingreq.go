@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func onPingReq(p packet) error {
+func (b *Broker) onPingReq(p packet) error {
 	log.Info("Received PINGREQ")
 	res := packets.PingRESP{}.Bytes()
 	_, err := p.Write(res[:])
