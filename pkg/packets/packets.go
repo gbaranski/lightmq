@@ -1,8 +1,6 @@
 package packets
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"io"
 
@@ -13,72 +11,22 @@ const (
 	// TypeConnect - Client request to connect to Server
 	//
 	// Direction: Client to Server
-	TypeConnect byte = iota + 1
+	TypeConnect PacketType = iota + 1
 
 	// TypeConnACK - Connect acknowledgment
 	//
 	// Direction: Server to Client
 	TypeConnACK
 
-	// TypePublish - Publish message
+	// TypeSend - Send message
 	//
 	// Direction: Server to Client or Client to Server
-	TypePublish
+	TypeSend
 
-	// TypePubACK - Publish acknowledgment
+	// TypeSendRESP - Send Response
 	//
 	// Direction: Server to Client or Client to Server
-	TypePubACK
-
-	// TypePubREC - Publish received (assured delivery part 1)
-	//
-	// Direction: Server to Client or Client to Server
-	TypePubREC
-
-	// TypePubREL - Publish release (assured delivery part 2)
-	//
-	// Direction: Server to Client or Client to Server
-	TypePubREL
-
-	// TypePubCOMP - Publish complete (assured delivery part 3)
-	//
-	// Direction: Server to Client or Client to Server
-	TypePubCOMP
-
-	// TypeSubscribe - Client subscribe request
-	//
-	// Direction: Client to Server
-	TypeSubscribe
-
-	// TypeSubACK - Subscribe acknowledgment
-	//
-	// Direction: Server to Client
-	TypeSubACK
-
-	// TypeUnsubscribe - Unsubscribe request
-	//
-	// Direction: Client to Server
-	TypeUnsubscribe
-
-	// TypeUnsubACK - Unsubscribe acknowledgment
-	//
-	// Direction: Server to Client
-	TypeUnsubACK
-
-	// TypePingREQ - Ping request
-	//
-	// Direction: Client to Server
-	TypePingREQ
-
-	// TypePingRESP - Ping response
-	//
-	// Direction: Server to Client
-	TypePingRESP
-
-	// TypeDisconnect - Client is disconnecting
-	//
-	// Direction: Client to Server
-	TypeDisconnect
+	TypeSendRESP
 )
 
 const (
@@ -95,38 +43,48 @@ const (
 	//
 	// It might be changed later to array of uint8
 	SupportedProtoLevel uint8 = 0x4
+
+	// SignatureSize is size of signature in bytes
+	SignatureSize uint8 = 64
 )
 
-var (
-	// ErrUnacceptableProtocol ...
-	ErrUnacceptableProtocol = errors.New("unnaceptable protocol")
-)
+// PacketType defines type of packet, can be one of Type...
+type PacketType byte
 
-// VerifyProtoName verifies if proto name is equal to ['M','Q','T','T']
-func VerifyProtoName(r *bytes.Reader) error {
-	var expb = [6]byte{0x0, 0x4, 0x4D, 0x51, 0x54, 0x54}
-	for i, exp := range expb {
-		b, err := r.ReadByte()
-		if err != nil {
-			return fmt.Errorf("can't read byte at %d: %s", i, err.Error())
-		}
-		if b != byte(exp) {
-			return fmt.Errorf("invalid byte at %d: exp: %x, rec: %x", i, exp, b)
-		}
-	}
-	return nil
-}
-
-// FixedHeader ...
-type FixedHeader byte
-
-// ControlPacketType ...
-func (h FixedHeader) ControlPacketType() byte {
-	return byte(h >> 4)
-}
-
-// ReadFixedHeader read fixed header from io.Reader
-func ReadFixedHeader(r io.Reader) (FixedHeader, error) {
+// ReadPacketType reads packet type and returns it
+func ReadPacketType(r io.Reader) (PacketType, error) {
 	b, err := utils.ReadByte(r)
-	return FixedHeader(b), err
+	return PacketType(b), err
+}
+
+// Payload is payload for the LightMQ Packet
+type Payload []byte
+
+// Signature is ed25519 signature of the payload
+type Signature []byte
+
+// ReadSignedPayload start with reading signature, then reads length of the data and the data	.
+func ReadSignedPayload(r io.Reader) (sig Signature, p Payload, err error) {
+	sig = make(Signature, SignatureSize)
+	n, err := r.Read(sig)
+	if err != nil {
+		return sig, p, fmt.Errorf("fail read signature %s", err.Error())
+	}
+	if n != int(SignatureSize) {
+		return sig, p, fmt.Errorf("invalid signature length: %d", n)
+	}
+
+	plen, err := utils.Read16BitInteger(r)
+	if err != nil {
+		return sig, p, fmt.Errorf("fail read payload len %s", err.Error())
+	}
+	p = make(Payload, plen)
+	n, err = r.Read(p)
+	if err != nil {
+		return sig, p, fmt.Errorf("fail read payload %s", err.Error())
+	}
+	if uint16(n) != plen {
+		return sig, p, fmt.Errorf("invalid payload length %s", err.Error())
+	}
+	return sig, p, nil
 }

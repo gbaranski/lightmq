@@ -3,7 +3,7 @@ package main
 import "github.com/gbaranski/lightmq"
 
 func main() {
-	b, err := lightmq.New(lightmq.Options{
+	b, err := lightmq.NewBroker(lightmq.Config{
 		Hostname: "0.0.0.0",
 		Port:     1883,
 	})

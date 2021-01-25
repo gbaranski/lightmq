@@ -15,14 +15,11 @@ import (
 // Client ...
 type Client struct {
 	ClientID  string
-	Username  string
 	IPAddress net.Addr
-	KeepAlive uint16
 }
 
 type packet struct {
 	Client          Client
-	FixedHeader     packets.FixedHeader
 	RemainingLength uint32
 	io.ByteReader
 	io.Reader
@@ -40,29 +37,29 @@ type handler = func(p packet) error
 
 // Broker ...
 type Broker struct {
-	opts        Options
+	cfg         Config
 	ClientStore *ClientStore
 }
 
-// New ...
-func New(opts Options) (Broker, error) {
+// NewBroker ...
+func NewBroker(cfg Config) (Broker, error) {
 	broker := Broker{
-		opts:        opts.Parse(),
+		cfg:         cfg.Parse(),
 		ClientStore: NewClientStore(),
 	}
 	return broker, nil
 }
 
 // Listen starts listening to incoming requests, this function is blocking
-func (b Broker) Listen() error {
-	l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", b.opts.Hostname, b.opts.Port))
+func (b *Broker) Listen() error {
+	l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", b.cfg.Hostname, b.cfg.Port))
 	if err != nil {
 		return err
 	}
 	log.WithFields(log.Fields{
-		"hostname": b.opts.Hostname,
-		"port":     b.opts.Port,
-	}).Info("Listening for incoming MQTT connections")
+		"hostname": b.cfg.Hostname,
+		"port":     b.cfg.Port,
+	}).Info("Listening for incoming LightMQ connections")
 	defer l.Close()
 	for {
 		conn, err := l.Accept()
@@ -70,45 +67,36 @@ func (b Broker) Listen() error {
 			return fmt.Errorf("fail accepting connection %s", err.Error())
 		}
 		go b.handleConnection(conn)
-
 	}
 }
 
 func (b *Broker) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	fh, err := packets.ReadFixedHeader(conn)
+	ptype, err := packets.ReadPacketType(conn)
 	if err != nil {
-		log.WithError(err).Error("fail read fixed header")
+		log.WithError(err).Error("fail read packet type")
 		return
 	}
 
-	if fh.ControlPacketType() != packets.TypeConnect {
-		log.WithField("type", fh.ControlPacketType()).Info("Connection must start with CONNECT packet")
+	if ptype != packets.TypeConnect {
+		log.WithField("type", ptype).Error("Connection must start with CONNECT packet")
+		return
+	}
+	_, payload, err := packets.ReadSignedPayload(conn)
+	if err != nil {
+		log.WithError(err).Error("fail reading payload")
 		return
 	}
 
-	len, err := utils.ReadLength(conn)
+	client, err := b.onConnect(bytes.NewReader(payload), conn)
 	if err != nil {
-		log.WithError(err).Error("fail read leangth %s", err.Error())
-		return
-	}
-
-	data := make([]byte, len)
-	_, err = conn.Read(data)
-	if err != nil {
-		log.WithField("error", err.Error()).Error("Fail read data")
-		return
-	}
-	client, err := b.onConnect(bytes.NewReader(data), conn)
-	if err != nil {
-		log.Error("fail connection %s", err.Error())
+		log.WithError(err).Error("fail handle connection")
 		return
 	}
 	go b.ClientStore.Add(client)
 	loge := log.WithFields(log.Fields{
 		"clientID": client.ClientID,
-		"username": client.Username,
 		"ip":       client.IPAddress.String(),
 	})
 
@@ -123,23 +111,20 @@ func (b *Broker) handleConnection(conn net.Conn) {
 func (b *Broker) readLoop(conn net.Conn, client Client) error {
 	r := bufio.NewReader(conn)
 	for {
-		fh, err := packets.ReadFixedHeader(r)
+		ptype, err := packets.ReadPacketType(r)
 		if err != nil {
-			return fmt.Errorf("fail read fixed header %s", err.Error())
+			return fmt.Errorf("fail read packet type %s", err.Error())
 		}
 
 		var handler handler
 
-		switch fh.ControlPacketType() {
-		case packets.TypeSubscribe:
-			fmt.Println("Subscribe not implemented yet")
-			continue
-		case packets.TypePingREQ:
-			handler = b.onPingReq
-		case packets.TypePublish:
-			handler = b.onPublish
+		switch ptype {
+		case packets.TypeConnect:
+			return fmt.Errorf("unexpected connect packet")
+		case packets.TypeSend:
+			return fmt.Errorf("TypeSend not implemented")
 		default:
-			return fmt.Errorf("unrecognized control packet type %x", fh.ControlPacketType())
+			return fmt.Errorf("unrecognized control packet type %x", ptype)
 		}
 
 		len, err := utils.ReadLength(r)
@@ -149,13 +134,13 @@ func (b *Broker) readLoop(conn net.Conn, client Client) error {
 
 		err = handler(packet{
 			Client:          client,
-			FixedHeader:     fh,
 			RemainingLength: len,
+			ByteReader:      r,
 			Reader:          r,
 			Writer:          conn,
 		})
 		if err != nil {
-			return fmt.Errorf("fail handle %x: %s", fh.ControlPacketType(), err.Error())
+			return fmt.Errorf("fail handle %x: %s", ptype, err.Error())
 		}
 	}
 

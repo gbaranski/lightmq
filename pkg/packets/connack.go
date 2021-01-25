@@ -1,49 +1,45 @@
 package packets
 
+import (
+	"crypto/ed25519"
+	"encoding/binary"
+)
+
 const (
 	// ConnACKConnectionAccepted Connection accepted
 	ConnACKConnectionAccepted = iota
-	// ConnACKUnacceptableProtocol The Server does not support the level of the MQTT protocol requested by the Client
-	ConnACKUnacceptableProtocol
 
-	// ConnACKIdentifierRejected The Client identifier is correct UTF-8 but not allowed by the Server
-	ConnACKIdentifierRejected
+	// ConnACKUnsupportedProtocol The Server does not support the level of the LightMQ protocol requested by the Client
+	ConnACKUnsupportedProtocol
 
-	// ConnACKServerUnavailable The Network Connection has been made but the MQTT service is unavailable
+	// ConnACKServerUnavailable The Network Connection has been made but the LightMQ service is unavailable
 	ConnACKServerUnavailable
 
-	// ConnACKBadUsernameOrPassword The data in the user name or password is malformed
-	ConnACKBadUsernameOrPassword
+	// ConnACKMalformedPayload Malformed payload
+	ConnACKMalformedPayload
 
-	// ConnACKNotAuthorized The Client is not authorized to connect
-	ConnACKNotAuthorized
+	// ConnACKUnauthorized The Client is not authorized to connect
+	ConnACKUnauthorized
 )
 
-// ConnACKFlags ...
-type ConnACKFlags struct {
-	SessionPresent bool
-}
-
-// ConnACK Packet is the packet sent by the Server in response to a CONNECT Packet received from a Client. The first packet sent from the Server to the Client MUST be a CONNACK Packet [MQTT-3.2.0-1].
+// ConnACK Packet is the packet sent by the Server in response to a CONNECT Packet received from a Client. The first packet sent from the Server to the Client MUST be a CONNACK Packet
 type ConnACK struct {
-	Flags ConnACKFlags
-
 	// e.g ConnACKConnectionAccepted
 	ReturnCode byte
 }
 
 // Bytes converts ConnACK to bytes
-func (c ConnACK) Bytes() (b [4]byte) {
-	b[0] = TypeConnACK << 4 // <- 0b00100000 Fixed Header
-	b[1] = 0x2              // Length of the rest of the payload
+func (c ConnACK) Bytes(skey ed25519.PrivateKey) []byte {
+	b := make([]byte, 68)
 
-	if c.Flags.SessionPresent {
-		b[2] = 0b00000001
-	} else {
-		b[2] = 0b00000000
-	}
+	sig := ed25519.Sign(skey, []byte{c.ReturnCode})
+	payloadLength := make([]byte, 2)
+	binary.BigEndian.PutUint16(payloadLength, 1)
 
-	b[3] = c.ReturnCode
+	b = append(b, byte(TypeConnACK)) // 1 byte
+	b = append(b, sig...)            // 64 bytes
+	b = append(b, payloadLength...)  // 2 bytes
+	b = append(b, c.ReturnCode)      // 1 byte
 
-	return
+	return b
 }
