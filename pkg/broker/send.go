@@ -9,7 +9,7 @@ import (
 func (b *Broker) onSend(p packet) error {
 	packets.ReadSignature(p)
 
-	plen, err := packets.ReadPayloadLength(p)
+	plen, err := packets.ReadPayloadSize(p)
 	if err != nil {
 		return err
 	}

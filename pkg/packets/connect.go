@@ -31,7 +31,7 @@ func ReadConnectPayload(r io.Reader) (cp ConnectPayload, err error) {
 		return cp, fmt.Errorf("fail read clientID %s", err.Error())
 	}
 	if n != int(clientIDSize) {
-		return cp, fmt.Errorf("invalid clientID size")
+		return cp, fmt.Errorf("invalid clientID size n: %d, exp %d", n, clientIDSize)
 	}
 	cp.ClientID = string(clientID)
 
@@ -47,8 +47,8 @@ func ReadConnectPayload(r io.Reader) (cp ConnectPayload, err error) {
 	return cp, nil
 }
 
-// Bytes converts ConnectPayload to bytes
-func (cp *ConnectPayload) Bytes() ([]byte, error) {
+// Bytes converts ConnectPayload to payload bytes
+func (cp ConnectPayload) Bytes() ([]byte, error) {
 	if len(cp.ClientID) > math.MaxUint8 {
 		return nil, fmt.Errorf("ClientID is too big")
 	}

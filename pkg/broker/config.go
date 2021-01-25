@@ -11,7 +11,7 @@ type Config struct {
 
 	// Port of where broker should listen
 	//
-	// Default: "1883"
+	// Default: "997"
 	Port uint32
 
 	// Ed25519 Private key
@@ -31,7 +31,7 @@ func (cfg Config) Parse() Config {
 		cfg.Hostname = "0.0.0.0"
 	}
 	if cfg.Port == 0 {
-		cfg.Port = 1883
+		cfg.Port = 997
 	}
 
 	return cfg

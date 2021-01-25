@@ -1,8 +1,10 @@
 package packets
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 
 	"github.com/gbaranski/lightmq/pkg/utils"
 )
@@ -30,23 +32,12 @@ const (
 )
 
 const (
-	// AtMostOnceQoS says that message will be delivered max 1 time
-	AtMostOnceQoS uint8 = 0x00
-
-	// AtLeastOnceQoS says that message will be delivered at least once
-	AtLeastOnceQoS uint8 = 0x01
-
-	// ExactlyOnceQoS says that message will be delivered exactly once
-	ExactlyOnceQoS uint8 = 0x02
-
-	// SupportedProtoLevel defines the supported level by the broker
-	//
-	// It might be changed later to array of uint8
-	SupportedProtoLevel uint8 = 0x4
-
 	// SignatureSize is size of signature in bytes
 	SignatureSize uint8 = 64
 )
+
+// Payload is type for LightMQ Payload
+type Payload []byte
 
 // PacketType defines type of packet, can be one of Type...
 type PacketType byte
@@ -56,9 +47,6 @@ func ReadPacketType(r io.Reader) (PacketType, error) {
 	b, err := utils.ReadByte(r)
 	return PacketType(b), err
 }
-
-// Payload is payload for the LightMQ Packet
-type Payload []byte
 
 // Signature is ed25519 signature of the payload
 type Signature []byte
@@ -78,6 +66,29 @@ func ReadSignature(r io.Reader) (sig Signature, err error) {
 }
 
 // ReadPayloadLength reads payload length, that must be called after reading signature but before reading payload
-func ReadPayloadLength(r io.Reader) (uint16, error) {
+func ReadPayloadSize(r io.Reader) (uint16, error) {
 	return utils.Read16BitInteger(r)
+}
+
+// Packet is type for LightMQ Packet
+type Packet struct {
+	Type      PacketType
+	Signature Signature
+	Payload   Payload
+}
+
+// Bytes converts packet to bytes which can be directly sent
+func (p Packet) Bytes() ([]byte, error) {
+	if len(p.Payload) > math.MaxUint16 {
+		return nil, fmt.Errorf("payload is too big: %d", len(p.Payload))
+	}
+	plen := make([]byte, 2)
+	binary.BigEndian.PutUint16(plen, uint16(len(p.Payload)))
+	// Optimize it later
+	b := make([]byte, 0)
+	b = append(b, byte(p.Type))
+	b = append(b, p.Signature...)
+	b = append(b, plen...)
+	b = append(b, p.Payload...)
+	return b, nil
 }
