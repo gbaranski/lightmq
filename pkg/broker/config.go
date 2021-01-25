@@ -1,4 +1,4 @@
-package lightmq
+package broker
 
 import "crypto/ed25519"
 

@@ -1,9 +1,9 @@
 package main
 
-import "github.com/gbaranski/lightmq"
+import "github.com/gbaranski/lightmq/pkg/broker"
 
 func main() {
-	b, err := lightmq.NewBroker(lightmq.Config{
+	b, err := broker.New(broker.Config{
 		Hostname: "0.0.0.0",
 		Port:     1883,
 	})

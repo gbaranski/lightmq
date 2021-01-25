@@ -1,4 +1,4 @@
-package lightmq
+package broker
 
 import (
 	"bufio"
@@ -41,8 +41,8 @@ type Broker struct {
 	ClientStore *ClientStore
 }
 
-// NewBroker ...
-func NewBroker(cfg Config) (Broker, error) {
+// New ...
+func New(cfg Config) (Broker, error) {
 	broker := Broker{
 		cfg:         cfg.Parse(),
 		ClientStore: NewClientStore(),

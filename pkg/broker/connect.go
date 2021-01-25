@@ -1,4 +1,4 @@
-package lightmq
+package broker
 
 import (
 	"bytes"
