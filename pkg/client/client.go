@@ -3,6 +3,8 @@ package client
 import (
 	"crypto/ed25519"
 	"fmt"
+	"math"
+	"math/rand"
 	"net"
 
 	"github.com/gbaranski/lightmq/pkg/packets"
@@ -10,7 +12,8 @@ import (
 
 // Client ...
 type Client struct {
-	cfg Config
+	cfg  Config
+	conn net.Conn
 }
 
 // New creates new client
@@ -22,7 +25,8 @@ func New(cfg Config) Client {
 
 // Connect connects to the specified host with specified port
 func (c *Client) Connect() error {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", c.cfg.Hostname, c.cfg.Port))
+	var err error
+	c.conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", c.cfg.Hostname, c.cfg.Port))
 	if err != nil {
 		return err
 	}
@@ -44,10 +48,32 @@ func (c *Client) Connect() error {
 	if err != nil {
 		return fmt.Errorf("fail convert connect packet to bytes %s", err.Error())
 	}
-	_, err = conn.Write(p)
+	_, err = c.conn.Write(p)
 	if err != nil {
 		return fmt.Errorf("fail write CONNECT packet %s", err.Error())
 	}
 
 	return nil
+}
+
+// Send sends a data
+func (c Client) Send(data []byte) error {
+	payload := packets.SendPayload{
+		ID:    uint16(rand.Intn(math.MaxInt16)),
+		Flags: 0,
+		Data:  data,
+	}.Bytes()
+	sig := ed25519.Sign(c.cfg.PrivateKey, payload)
+	packet, err := packets.Packet{
+		Type:      packets.TypeSend,
+		Signature: sig,
+		Payload:   payload,
+	}.Bytes()
+	if err != nil {
+		return fmt.Errorf("fail encode payload %s", err.Error())
+	}
+
+	_, err = c.conn.Write(packet)
+
+	return err
 }

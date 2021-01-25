@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"crypto/ed25519"
 	"crypto/rand"
+	"os"
 
 	"github.com/gbaranski/lightmq/pkg/client"
 	log "github.com/sirupsen/logrus"
@@ -25,6 +27,9 @@ func main() {
 		panic(err)
 	}
 	log.Info("Successfully connected!")
-	select {}
-
+	r := bufio.NewReader(os.Stdin)
+	for {
+		text, _ := r.ReadString('\n')
+		c.Send([]byte(text))
+	}
 }

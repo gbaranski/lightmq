@@ -37,3 +37,17 @@ func ReadSendPayload(r io.Reader, plen uint16) (sp SendPayload, err error) {
 
 	return sp, nil
 }
+
+// Bytes convert payload to byte slice
+func (p SendPayload) Bytes() []byte {
+	msgID := make([]byte, 2)
+	binary.BigEndian.PutUint16(msgID, p.ID)
+
+	// Optimize size
+	b := make([]byte, 0)
+	b = append(b, msgID...)
+	b = append(b, p.Flags)
+	b = append(b, p.Data...)
+
+	return b
+}
