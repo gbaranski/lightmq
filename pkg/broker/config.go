@@ -18,6 +18,11 @@ type Config struct {
 	//
 	// Required
 	PrivateKey ed25519.PrivateKey
+
+	// Ed25519 Public key
+	//
+	// Required
+	PublicKey ed25519.PublicKey
 }
 
 // Parse parses options and set defaults

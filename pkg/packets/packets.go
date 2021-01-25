@@ -63,28 +63,21 @@ type Payload []byte
 // Signature is ed25519 signature of the payload
 type Signature []byte
 
-// ReadSignedPayload start with reading signature, then reads length of the data and the data	.
-func ReadSignedPayload(r io.Reader) (sig Signature, p Payload, err error) {
+// ReadSignature reads signature, that must be called after reading Packet Type, but before reading Payload length
+func ReadSignature(r io.Reader) (sig Signature, err error) {
 	sig = make(Signature, SignatureSize)
 	n, err := r.Read(sig)
 	if err != nil {
-		return sig, p, fmt.Errorf("fail read signature %s", err.Error())
+		return sig, fmt.Errorf("fail read signature %s", err.Error())
 	}
 	if n != int(SignatureSize) {
-		return sig, p, fmt.Errorf("invalid signature length: %d", n)
+		return sig, fmt.Errorf("invalid signature length: %d", n)
 	}
 
-	plen, err := utils.Read16BitInteger(r)
-	if err != nil {
-		return sig, p, fmt.Errorf("fail read payload len %s", err.Error())
-	}
-	p = make(Payload, plen)
-	n, err = r.Read(p)
-	if err != nil {
-		return sig, p, fmt.Errorf("fail read payload %s", err.Error())
-	}
-	if uint16(n) != plen {
-		return sig, p, fmt.Errorf("invalid payload length %s", err.Error())
-	}
-	return sig, p, nil
+	return sig, nil
+}
+
+// ReadPayloadLength reads payload length, that must be called after reading signature but before reading payload
+func ReadPayloadLength(r io.Reader) (uint16, error) {
+	return utils.Read16BitInteger(r)
 }

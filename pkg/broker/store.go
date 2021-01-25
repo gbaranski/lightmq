@@ -28,11 +28,11 @@ var (
 func (l *ClientStore) Add(c Client) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	_, ok := l.c[c.ClientID]
+	_, ok := l.c[c.ID]
 	if ok {
 		return ErrAlreadyExists
 	}
-	l.c[c.ClientID] = c
+	l.c[c.ID] = c
 	return nil
 }
 

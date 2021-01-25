@@ -1,8 +1,11 @@
 package packets
 
 import (
-	"bytes"
 	"fmt"
+	"io"
+	"math"
+
+	"github.com/gbaranski/lightmq/pkg/utils"
 )
 
 const (
@@ -17,13 +20,13 @@ type ConnectPayload struct {
 }
 
 // ReadConnectPayload ...
-func ReadConnectPayload(p *bytes.Reader) (cp ConnectPayload, err error) {
-	clientIDSize, err := p.ReadByte()
+func ReadConnectPayload(r io.Reader) (cp ConnectPayload, err error) {
+	clientIDSize, err := utils.ReadByte(r)
 	if err != nil {
 		return cp, fmt.Errorf("fail read clientID len %s", err.Error())
 	}
 	clientID := make([]byte, clientIDSize)
-	n, err := p.Read(clientID)
+	n, err := r.Read(clientID)
 	if err != nil {
 		return cp, fmt.Errorf("fail read clientID %s", err.Error())
 	}
@@ -33,7 +36,7 @@ func ReadConnectPayload(p *bytes.Reader) (cp ConnectPayload, err error) {
 	cp.ClientID = string(clientID)
 
 	cp.Challenge = make([]byte, ConnectPayloadChallengeSize)
-	n, err = p.Read(cp.Challenge)
+	n, err = r.Read(cp.Challenge)
 	if err != nil {
 		return cp, fmt.Errorf("fail read challenge %s", err.Error())
 	}
@@ -42,4 +45,23 @@ func ReadConnectPayload(p *bytes.Reader) (cp ConnectPayload, err error) {
 	}
 
 	return cp, nil
+}
+
+// Bytes converts ConnectPayload to bytes
+func (cp *ConnectPayload) Bytes() ([]byte, error) {
+	if len(cp.ClientID) > math.MaxUint8 {
+		return nil, fmt.Errorf("ClientID is too big")
+	}
+	// 1 			  <- ClientID Size byte
+	// len(clientID)  <- ClientID length
+	// len(challenge) <- Challenge length
+
+	// Think about optimizing this one
+	p := make([]byte, 0)
+	p = append(p, uint8(len(cp.ClientID)))
+	p = append(p, []byte(cp.ClientID)...)
+	p = append(p, cp.Challenge...)
+
+	return p, nil
+
 }
