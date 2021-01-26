@@ -8,27 +8,30 @@ LightMQ is Client Server messaging protocol. It is and will be lightweight and e
 - [Data representations](#data-representations)
   - [Bits](#bits)
   - [16-bit unsigned integer](#16-bit-unsigned-integer)
-  - [UTF8 String](#utf8-string)
+  - [Length prefixed string](#length-prefixed-string)
       - [Example](#example)
-- [Packet structure](#packet-structure)
-  - [Packet type](#packet-type)
-  - [Payload size](#payload-size)
-  - [Payload](#payload)
-  - [Packet structure table](#packet-structure-table)
-- [Packet types](#packet-types)
+- [Opcodes](#opcodes)
+- [Frame format](#frame-format)
+  - [Example SEND frame](#example-send-frame)
+- [Control frames](#control-frames)
   - [CONNECT](#connect)
     - [Payload structure](#payload-structure)
     - [ClientID](#clientid)
   - [CONNACK](#connack)
     - [Payload structure](#payload-structure-1)
     - [Return Code](#return-code)
-  - [SEND](#send)
+  - [PING](#ping)
     - [Payload structure](#payload-structure-2)
+  - [PONG](#pong)
+    - [Payload structure](#payload-structure-3)
+- [Data frames](#data-frames)
+  - [SEND](#send)
+    - [Payload structure](#payload-structure-4)
     - [Message ID](#message-id)
     - [Message Flags](#message-flags)
     - [Data](#data)
   - [SENDRESP](#sendresp)
-    - [Payload structure](#payload-structure-3)
+    - [Payload structure](#payload-structure-5)
     - [Message ID](#message-id-1)
 - [References](#references)
 - [TODO](#todo)
@@ -57,8 +60,8 @@ bytes := []byte{0x20, 0x10} // 16-bit integer in bytes
 value := binary.BigEndian.Uint16(bytes) // 8208
 ```
 
-## UTF8 String
-UTF-8 Length prefixed strings means that length of a string is stored explicitly, before the actual text. Length **MUST** be single byte value. String can be up to 256 bytes long.
+## Length prefixed string
+Length prefixed strings means that length of a string is stored explicitly, before the actual text as a single byte. Length **MUST** be single byte value. String can be up to 255 bytes long.
 
 #### Example
 | Bit             | Value |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
@@ -70,63 +73,43 @@ UTF-8 Length prefixed strings means that length of a string is stored explicitly
 | Byte 4 - Char   |   L   |   0   |   1   |   0   |   0   |   1   |   1   |   0   |   0   |
 | Byte 5 - Char   |   O   |   0   |   1   |   0   |   0   |   1   |   1   |   1   |   1   |
 
+# Opcodes
+|         Name          |   Hex    |     Direction     | Description                                        |
+| :-------------------: | :------: | :---------------: | -------------------------------------------------- |
+|       Reserved        |   0x0    |       None        | For use in future                                  |
+|  [CONNECT](#connect)  |   0x1    | Client -> Server  | Client request to connect to Server                |
+|  [CONNACK](#connack)  |   0x2    | Server -> Client  | Server acknowledges connection request from Client |
+|     [PING](#ping)     |   0x3    | Server <-> Client | Check if network connection is active              |
+|     [PONG](#pong)     |   0x4    | Server <-> Client | Response to PING                                   |
+|     [SEND](#send)     |   0x5    | Server <-> Client | Send messages with data                            |
+| [SENDRESP](#sendresp) |   0x6    | Server <-> Client | Send response to message                           |
+|       Reserved        | 0x7-0xFF |       None        | For use in future                                  |
 
-# Packet structure
-## Packet type
+# Frame format
 
-**Position**: Starts at byte 0
+|      Name      |  Length  |       Presence        | Description                                         |
+| :------------: | :------: | :-------------------: | --------------------------------------------------- |
+|     opcode     |  1 byte  |      Every frame      | Must be one of [registered opcodes](#opcodes)       |
+| Payload length | 2 bytes  |      Every frame      | [16-bit unsigned integer](#16-bit-unsigned-integer) |
+|    Payload     |    ^>    | If payload length > 0 |                                                     |
+|    Reserved    | 0x7-0xFF |                       | None                                                |
 
-**Size**: 1 byte(8 bits)
+## Example SEND frame
 
-**MUST** exist in every packet data
+| Bit                                             |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
+| ----------------------------------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Byte 0 - [Packet type](#packet-type)(0x5)       |   0   |   0   |   0   |   0   |   0   |   1   |   0   |   1   |
+| Byte 1 - [Payload size MSB](#payload-size)(0x2) |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |
+| Byte 2 - [Payload size LSB](#payload-size)(0x0) |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |
+| Byte 3 - [Payload byte 0](#payload)('H')        |   0   |   1   |   0   |   0   |   1   |   0   |   0   |   0   |
+| Byte 4 - [Payload byte 1](#payload)('i')        |   0   |   1   |   1   |   0   |   1   |   0   |   0   |   1   |
 
-Represented in 1 byte(8 bits). **MUST** be one of following:
-
-|         Name          |  Dec  |    Bin     |     Direction     | Description                                        |
-| :-------------------: | :---: | :--------: | :---------------: | -------------------------------------------------- |
-|       Reserved        |   1   | `00000001` |       None        | For use in future                                  |
-|  [CONNECT](#connect)  |   1   | `00000001` | Client -> Server  | Client request to connect to Server                |
-|  [CONNACK](#connack)  |   2   | `00000010` | Server -> Client  | Server acknowledges connection request from Client |
-|     [SEND](#send)     |   3   | `00000011` | Server <-> Client | Send messages with data                            |
-| [SENDRESP](#sendresp) |   4   | `00000100` | Server <-> Client | Send response to message                           |
-|       Reserved        | 5-256 | `00000101` |       None        | For use in future                                  |
-
-If Client send invalid Packet type, Server **MAY** close the connection.
-
-## Payload size
-**Position**: Starts at byte 1
-
-**Size**: 2 bytes(16 bits)
-
-**MUST** exist in every packet data
-
-Represented as [16-bit unsigned integer](#16-bit-unsigned-integer). Used to define size for [payload](#payload). Can be equal 0 meaning payload does not exist.
-
-## Payload
-**Position**: Starts at byte 3
-
-**Size**: Defined by [Payload length](#payload-length)
-
-## Packet structure table
-
-Each packet have following structure:
-
-| Bit                                        |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
-| ------------------------------------------ | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Byte 0 - [Packet type](#packet-type)       |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 1 - [Payload size MSB](#payload-size) |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 2 - [Payload size LSB](#payload-size) |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 3...65535 - [Payload](#payload)       |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-
-<br/>
-
-# Packet types
+# Control frames
 
 ## CONNECT
 After a Network Connection is established by a Client to a Server, the first Packet sent from the Client to the Server **MUST** be a CONNECT Packet.
 
 CONNECT packet may occur only once, second CONNECT packet **MUST** close connection.
-
 
 ### Payload structure
 
@@ -141,8 +124,6 @@ CONNECT packet may occur only once, second CONNECT packet **MUST** close connect
 ClientID is [UTF-8 Length prefixed string](#utf8-string)
 
 **MUST** be unique across different clients. 
-
-If Client with same ClientID already exists, server **MUST** disconnect old client.
 
 ## CONNACK
 The CONNACK Packet is the packet sent by the Server in response to a CONNECT Packet received from a Client. The first packet sent from the Server to the Client **MUST** be a CONNACK Packet.
@@ -163,10 +144,28 @@ The CONNACK Packet is the packet sent by the Server in response to a CONNECT Pac
 | 0x4      | Unauthorized                 |
 | 0x5-0xFF | Reserved for future use      |
 
+## PING
+The PING Packet is sent from a Client to the Server or from Server to Client. It can be used to test if the network connection is active.
+
+### Payload structure
+
+| Name                                  | Size    |
+| ------------------------------------- | ------- |
+| [Random ID](#16-bit-unsigned-integer) | 2 bytes |
+
+## PONG
+The PONG Packet is sent from a Client to the Server or from Server to Client. It acknowledges that it received PING. This packet type doesn't have payload.
+
+### Payload structure
+
+| Name                                                   | Size    |
+| ------------------------------------------------------ | ------- |
+| [Random ID, same as PING ID](#16-bit-unsigned-integer) | 2 bytes |
+
+# Data frames
 
 ## SEND
 A SEND Packet is sent from a Client to a Server or from Server to a Client to transport an Application Message.
-
 
 ### Payload structure
 | Name                    | Size              |
@@ -194,7 +193,6 @@ Data of the message
 
 ## SENDRESP
 A SENDRESP Packet is sent from a Client to a Server or from Server to a Client as a response to SEND.
-
 
 ### Payload structure
 | Name              | Size              |
