@@ -10,37 +10,47 @@ import (
 )
 
 const (
-	// TypeConnect - Client request to connect to Server
+	// OpCodeConnect - Client request to connect to Server operation code
 	//
 	// Direction: Client to Server
-	TypeConnect PacketType = iota + 1
+	OpCodeConnect OpCode = iota + 1
 
-	// TypeConnACK - Connect acknowledgment
+	// OpCodeConnACK - Connect acknowledgment operation code
 	//
 	// Direction: Server to Client
-	TypeConnACK
+	OpCodeConnACK
 
-	// TypeSend - Send message
+	// OpCodeSend - Send message operation code
 	//
 	// Direction: Server to Client or Client to Server
-	TypeSend
+	OpCodeSend
 
-	// TypeSendRESP - Send Response
+	// OpCodeSendRESP - Send Response operation code
 	//
 	// Direction: Server to Client or Client to Server
-	TypeSendRESP
+	OpCodeSendRESP
+
+	// OpCodePing - Ping request operation code
+	//
+	// Direction: Server to Client or Client to Server
+	OpCodePing
+
+	// OpCodePong - Ping acknowledgmenet operation code
+	//
+	// Direction: Server to Client or Client to Server
+	OpCodePong
 )
 
 // Payload is type for LightMQ Payload
 type Payload []byte
 
-// PacketType defines type of packet, can be one of Type...
-type PacketType byte
+// OpCode defnes opcode of packet
+type OpCode byte
 
 // ReadPacketType reads packet type and returns it
-func ReadPacketType(r io.Reader) (PacketType, error) {
+func ReadPacketType(r io.Reader) (OpCode, error) {
 	b, err := utils.ReadByte(r)
-	return PacketType(b), err
+	return OpCode(b), err
 }
 
 // ReadPayloadSize reads size length, that must be called before reading payload
@@ -50,7 +60,7 @@ func ReadPayloadSize(r io.Reader) (uint16, error) {
 
 // Packet is type for LightMQ Packet
 type Packet struct {
-	Type    PacketType
+	OpCode  OpCode
 	Payload Payload
 }
 
@@ -63,7 +73,7 @@ func (p Packet) Bytes() ([]byte, error) {
 	binary.BigEndian.PutUint16(plen, uint16(len(p.Payload)))
 	// Optimize it later
 	b := make([]byte, 0)
-	b = append(b, byte(p.Type))
+	b = append(b, byte(p.OpCode))
 	b = append(b, plen...)
 	b = append(b, p.Payload...)
 	return b, nil

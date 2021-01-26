@@ -22,19 +22,19 @@ const (
 	ConnACKUnauthorized
 )
 
-// ConnACK Packet is the packet sent by the Server in response to a CONNECT Packet received from a Client. The first packet sent from the Server to the Client MUST be a CONNACK Packet
-type ConnACK struct {
+// ConnACKPayload is the packet sent by the Server in response to a CONNECT Packet received from a Client. The first packet sent from the Server to the Client MUST be a CONNACK Packet
+type ConnACKPayload struct {
 	// e.g ConnACKConnectionAccepted
 	ReturnCode byte
 }
 
 // Bytes converts ConnACK to bytes
-func (c ConnACK) Bytes(skey ed25519.PrivateKey) []byte {
+func (c ConnACKPayload) Bytes(skey ed25519.PrivateKey) []byte {
 	payloadLength := make([]byte, 2)
 	binary.BigEndian.PutUint16(payloadLength, 1)
 
 	b := make([]byte, 68)
-	b[0] = byte(TypeConnACK)
+	b[0] = byte(OpCodeConnACK)
 	b[1] = payloadLength[0]
 	b[2] = payloadLength[1]
 	b[3] = c.ReturnCode

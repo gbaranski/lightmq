@@ -17,14 +17,14 @@ func (b *Broker) onConnect(conn net.Conn) (c Client, err error) {
 
 	cp, err := packets.ReadConnectPayload(conn)
 	if err != nil {
-		cack := packets.ConnACK{
+		cack := packets.ConnACKPayload{
 			ReturnCode: packets.ConnACKMalformedPayload,
 		}.Bytes(b.cfg.PrivateKey)
 		conn.Write(cack[:])
 		return c, err
 	}
 
-	cack := packets.ConnACK{
+	cack := packets.ConnACKPayload{
 		ReturnCode: packets.ConnACKConnectionAccepted,
 	}.Bytes(b.cfg.PrivateKey)
 

@@ -48,9 +48,9 @@ func (b *Broker) readLoop(conn net.Conn, client Client) error {
 		var handler handler
 
 		switch ptype {
-		case packets.TypeConnect:
+		case packets.OpCodeConnect:
 			return fmt.Errorf("unexpected connect packet")
-		case packets.TypeSend:
+		case packets.OpCodeSend:
 			handler = b.onSend
 		default:
 			return fmt.Errorf("unrecognized control packet type %x", ptype)

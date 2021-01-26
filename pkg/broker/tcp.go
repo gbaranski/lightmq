@@ -37,7 +37,7 @@ func (b *Broker) handleTCPConnection(conn net.Conn) {
 		return
 	}
 
-	if ptype != packets.TypeConnect {
+	if ptype != packets.OpCodeConnect {
 		log.WithField("type", ptype).Error("Connection must start with CONNECT packet")
 		return
 	}

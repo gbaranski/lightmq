@@ -39,7 +39,7 @@ func (c *Client) Connect() error {
 	}
 
 	p, err := packets.Packet{
-		Type:    packets.TypeConnect,
+		OpCode:  packets.OpCodeConnect,
 		Payload: payload,
 	}.Bytes()
 	if err != nil {
@@ -61,7 +61,7 @@ func (c Client) Send(data []byte) error {
 		Data:  data,
 	}.Bytes()
 	packet, err := packets.Packet{
-		Type:    packets.TypeSend,
+		OpCode:  packets.OpCodeSend,
 		Payload: payload,
 	}.Bytes()
 	if err != nil {
