@@ -30,16 +30,14 @@ type ConnACK struct {
 
 // Bytes converts ConnACK to bytes
 func (c ConnACK) Bytes(skey ed25519.PrivateKey) []byte {
-	b := make([]byte, 68)
-
-	sig := ed25519.Sign(skey, []byte{c.ReturnCode})
 	payloadLength := make([]byte, 2)
 	binary.BigEndian.PutUint16(payloadLength, 1)
 
-	b = append(b, byte(TypeConnACK)) // 1 byte
-	b = append(b, sig...)            // 64 bytes
-	b = append(b, payloadLength...)  // 2 bytes
-	b = append(b, c.ReturnCode)      // 1 byte
+	b := make([]byte, 68)
+	b[0] = byte(TypeConnACK)
+	b[1] = payloadLength[0]
+	b[2] = payloadLength[1]
+	b[3] = c.ReturnCode
 
 	return b
 }

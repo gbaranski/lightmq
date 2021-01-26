@@ -12,7 +12,6 @@ LightMQ is Client Server messaging protocol. It is and will be lightweight and e
       - [Example](#example)
 - [Packet structure](#packet-structure)
   - [Packet type](#packet-type)
-  - [Signature](#signature)
   - [Payload size](#payload-size)
   - [Payload](#payload)
   - [Packet structure table](#packet-structure-table)
@@ -20,7 +19,6 @@ LightMQ is Client Server messaging protocol. It is and will be lightweight and e
   - [CONNECT](#connect)
     - [Payload structure](#payload-structure)
     - [ClientID](#clientid)
-    - [Challenge](#challenge)
   - [CONNACK](#connack)
     - [Payload structure](#payload-structure-1)
     - [Return Code](#return-code)
@@ -95,21 +93,8 @@ Represented in 1 byte(8 bits). **MUST** be one of following:
 
 If Client send invalid Packet type, Server **MAY** close the connection.
 
-## Signature
-
-**Position**: Starts at byte 1
-
-**Size**: 64 bytes(512 bits)<sup>[1](#references)</sup>
-
-**MUST** exist in every packet data
-
-Server **SHOULD** verify if signature is valid.
-
-Digital signature created using [Ed25519 scheme](https://en.wikipedia.org/wiki/EdDSA) by signing the [payload](#payload) with private key, so server can verify [payload](#signature) using Client Public Key.
-
-
 ## Payload size
-**Position**: Starts at byte 65
+**Position**: Starts at byte 1
 
 **Size**: 2 bytes(16 bits)
 
@@ -118,7 +103,7 @@ Digital signature created using [Ed25519 scheme](https://en.wikipedia.org/wiki/E
 Represented as [16-bit unsigned integer](#16-bit-unsigned-integer). Used to define size for [payload](#payload). Can be equal 0 meaning payload does not exist.
 
 ## Payload
-**Position**: Starts at byte 67
+**Position**: Starts at byte 3
 
 **Size**: Defined by [Payload length](#payload-length)
 
@@ -126,13 +111,12 @@ Represented as [16-bit unsigned integer](#16-bit-unsigned-integer). Used to defi
 
 Each packet have following structure:
 
-| Bit                                          |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
-| -------------------------------------------- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Byte 0 - [Packet type](#packet-type)         |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 1...65 - [Paylod signature](#signature) |   -   |   -   |   -   |   -   |   -   |   -   |   -   |   -   |
-| Byte 66 - [Payload size MSB](#payload-size)  |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 67 - [Payload size LSB](#payload-size)  |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
-| Byte 68...65535 - [Payload](#payload)        |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Bit                                        |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
+| ------------------------------------------ | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Byte 0 - [Packet type](#packet-type)       |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 1 - [Payload size MSB](#payload-size) |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 2 - [Payload size LSB](#payload-size) |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
+| Byte 3...65535 - [Payload](#payload)       |   X   |   X   |   X   |   X   |   X   |   X   |   X   |   X   |
 
 <br/>
 
@@ -150,7 +134,6 @@ CONNECT packet may occur only once, second CONNECT packet **MUST** close connect
 | --------------------- | ------------- |
 | ClientID size         | 1 byte        |
 | [ClientID](#clientid) | Prefixed size |
-| Challenge             | 8 bytes       |
 
 <br/>
 
@@ -160,9 +143,6 @@ ClientID is [UTF-8 Length prefixed string](#utf8-string)
 **MUST** be unique across different clients. 
 
 If Client with same ClientID already exists, server **MUST** disconnect old client.
-
-### Challenge
-Challenge is random byte string of 8 bytes in size, it is used to prevent hijacking signature of CONNECT message.
 
 ## CONNACK
 The CONNACK Packet is the packet sent by the Server in response to a CONNECT Packet received from a Client. The first packet sent from the Server to the Client **MUST** be a CONNACK Packet.
@@ -226,9 +206,6 @@ A SENDRESP Packet is sent from a Client to a Server or from Server to a Client a
 Random bytes used as correlation data.
 
 # References
-
-1. Daniel J. Bernstein, Niels Duif, Tanja Lange, Peter Schwabe, Bo-Yin Yang, [High-speed high-security signatures](https://ed25519.cr.yp.to/ed25519-20110926.pdf) 
-    > Public keys are 32 bytes, and signatures are 64 bytes.
 
 # TODO
 - Figure out what exactly should be in [Variable header](#variable-header)

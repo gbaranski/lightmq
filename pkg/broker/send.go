@@ -1,19 +1,12 @@
 package broker
 
 import (
-	"fmt"
-
 	"github.com/gbaranski/lightmq/pkg/packets"
 	log "github.com/sirupsen/logrus"
 )
 
 // OnSend should be executed on SEND packet
 func (b *Broker) onSend(p packet) error {
-	_, err := packets.ReadSignature(p)
-	if err != nil {
-		return fmt.Errorf("fail read sig %s", err.Error())
-	}
-
 	psize, err := packets.ReadPayloadSize(p)
 	if err != nil {
 		return err

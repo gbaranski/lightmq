@@ -1,7 +1,6 @@
 package client
 
 import (
-	"crypto/ed25519"
 	"fmt"
 	"math"
 	"math/rand"
@@ -39,11 +38,9 @@ func (c *Client) Connect() error {
 		return fmt.Errorf("fail convert connect payload to bytes %s", err.Error())
 	}
 
-	sig := ed25519.Sign(c.cfg.PrivateKey, payload)
 	p, err := packets.Packet{
-		Type:      packets.TypeConnect,
-		Signature: sig,
-		Payload:   payload,
+		Type:    packets.TypeConnect,
+		Payload: payload,
 	}.Bytes()
 	if err != nil {
 		return fmt.Errorf("fail convert connect packet to bytes %s", err.Error())
@@ -63,11 +60,9 @@ func (c Client) Send(data []byte) error {
 		Flags: 0,
 		Data:  data,
 	}.Bytes()
-	sig := ed25519.Sign(c.cfg.PrivateKey, payload)
 	packet, err := packets.Packet{
-		Type:      packets.TypeSend,
-		Signature: sig,
-		Payload:   payload,
+		Type:    packets.TypeSend,
+		Payload: payload,
 	}.Bytes()
 	if err != nil {
 		return fmt.Errorf("fail encode payload %s", err.Error())

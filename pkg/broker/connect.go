@@ -10,10 +10,6 @@ import (
 
 func (b *Broker) onConnect(conn net.Conn) (c Client, err error) {
 	log.WithField("ip", conn.RemoteAddr().String()).Info("Starting new connection")
-	_, err = packets.ReadSignature(conn)
-	if err != nil {
-		return c, fmt.Errorf("fail read sig %s", err.Error())
-	}
 	_, err = packets.ReadPayloadSize(conn)
 	if err != nil {
 		return c, fmt.Errorf("fail read payload size %s", err.Error())
