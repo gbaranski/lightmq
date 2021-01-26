@@ -65,7 +65,7 @@ func ReadSignature(r io.Reader) (sig Signature, err error) {
 	return sig, nil
 }
 
-// ReadPayloadLength reads payload length, that must be called after reading signature but before reading payload
+// ReadPayloadSize reads size length, that must be called after reading signature but before reading payload
 func ReadPayloadSize(r io.Reader) (uint16, error) {
 	return utils.Read16BitInteger(r)
 }

@@ -18,7 +18,6 @@ func (b *Broker) onSend(p packet) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("psize:", psize)
 	sp, err := packets.ReadSendPayload(p, psize)
 	if err != nil {
 		return err

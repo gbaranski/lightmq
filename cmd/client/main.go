@@ -30,6 +30,11 @@ func main() {
 	r := bufio.NewReader(os.Stdin)
 	for {
 		text, _ := r.ReadString('\n')
-		c.Send([]byte(text))
+		log.WithField("msg", text).Info("Sending message")
+		err := c.Send([]byte(text))
+		if err != nil {
+
+			panic(err)
+		}
 	}
 }

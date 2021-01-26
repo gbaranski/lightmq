@@ -1,7 +1,6 @@
 package broker
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"net"
@@ -40,9 +39,8 @@ func New(cfg Config) (Broker, error) {
 }
 
 func (b *Broker) readLoop(conn net.Conn, client Client) error {
-	r := bufio.NewReader(conn)
 	for {
-		ptype, err := packets.ReadPacketType(r)
+		ptype, err := packets.ReadPacketType(conn)
 		if err != nil {
 			return fmt.Errorf("fail read packet type %s", err.Error())
 		}
