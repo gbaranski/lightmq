@@ -137,12 +137,13 @@ The CONNACK Packet is the packet sent by the Server in response to a CONNECT Pac
 
 | Value    | Description                  |
 | -------- | ---------------------------- |
-| 0x0      | Connection Accepted          |
-| 0x1      | Unsupported Protocol Version |
-| 0x2      | Server unavailable           |
-| 0x3      | Malformed payload            |
-| 0x4      | Unauthorized                 |
-| 0x5-0xFF | Reserved for future use      |
+| 0x0      | Forbidden                    |
+| 0x1      | Connection Accepted          |
+| 0x2      | Unsupported Protocol Version |
+| 0x3      | Server unavailable           |
+| 0x4      | Malformed payload            |
+| 0x5      | Unauthorized                 |
+| 0x6-0xFF | Reserved for future use      |
 
 ## PING
 The PING Packet is sent from a Client to the Server or from Server to Client. It can be used to test if the network connection is active.
