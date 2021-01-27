@@ -40,7 +40,7 @@ func New(cfg Config) (Broker, error) {
 
 func (b *Broker) readLoop(conn net.Conn, client Client) error {
 	for {
-		ptype, err := packets.ReadPacketType(conn)
+		ptype, err := packets.ReadOpCode(conn)
 		if err != nil {
 			return fmt.Errorf("fail read packet type %s", err.Error())
 		}

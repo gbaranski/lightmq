@@ -7,18 +7,28 @@ import (
 	"net"
 
 	"github.com/gbaranski/lightmq/pkg/packets"
+	log "github.com/sirupsen/logrus"
 )
+
+// PacketChannels is struct which contains of channels for packets
+type PacketChannels struct {
+	ConnACK chan packets.ConnACKPayload
+}
 
 // Client ...
 type Client struct {
-	cfg  Config
-	conn net.Conn
+	cfg     Config
+	conn    net.Conn
+	Packets PacketChannels
 }
 
 // New creates new client
 func New(cfg Config) Client {
 	return Client{
 		cfg: cfg,
+		Packets: PacketChannels{
+			ConnACK: make(chan packets.ConnACKPayload),
+		},
 	}
 }
 
@@ -49,8 +59,39 @@ func (c *Client) Connect() error {
 	if err != nil {
 		return fmt.Errorf("fail write CONNECT packet %s", err.Error())
 	}
-
 	return nil
+}
+
+// Handler is type for packet handling function
+type handler = func() error
+
+// ReadLoop reads all data from connection in loop
+func (c Client) ReadLoop() error {
+	for {
+		opcode, err := packets.ReadOpCode(c.conn)
+		if err != nil {
+			return fmt.Errorf("fail read packet type %s", err)
+		}
+		var handler handler
+
+		switch opcode {
+		case packets.OpCodeConnACK:
+			handler = c.onConnACK
+		case packets.OpCodePing:
+			handler = c.onPing
+		case packets.OpCodePong:
+			handler = c.onPong
+		default:
+			return fmt.Errorf("no handler for opcode:%x", opcode)
+		}
+
+		log.WithField("opcode", fmt.Sprintf("0x%x", opcode)).Info("Handling packet")
+		err = handler()
+		if err != nil {
+			return fmt.Errorf("fail handle %x: %s", opcode, err.Error())
+		}
+	}
+
 }
 
 // Send sends a data

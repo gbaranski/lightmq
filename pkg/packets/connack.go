@@ -1,13 +1,15 @@
 package packets
 
 import (
-	"crypto/ed25519"
-	"encoding/binary"
+	"fmt"
+	"io"
+
+	"github.com/gbaranski/lightmq/pkg/utils"
 )
 
 const (
 	// ConnACKConnectionAccepted Connection accepted
-	ConnACKConnectionAccepted = iota
+	ConnACKConnectionAccepted byte = iota + 1
 
 	// ConnACKUnsupportedProtocol The Server does not support the level of the LightMQ protocol requested by the Client
 	ConnACKUnsupportedProtocol
@@ -29,15 +31,26 @@ type ConnACKPayload struct {
 }
 
 // Bytes converts ConnACK to bytes
-func (c ConnACKPayload) Bytes(skey ed25519.PrivateKey) []byte {
-	payloadLength := make([]byte, 2)
-	binary.BigEndian.PutUint16(payloadLength, 1)
-
-	b := make([]byte, 68)
-	b[0] = byte(OpCodeConnACK)
-	b[1] = payloadLength[0]
-	b[2] = payloadLength[1]
-	b[3] = c.ReturnCode
-
+func (c ConnACKPayload) Bytes() []byte {
+	b := make([]byte, 1)
+	b[0] = c.ReturnCode
 	return b
+}
+
+// ReadConnACKPayload reads ConnACK packet payload
+func ReadConnACKPayload(r io.Reader) (ConnACKPayload, error) {
+	length, err := utils.Read16BitInteger(r)
+	if err != nil {
+		return ConnACKPayload{}, fmt.Errorf("fail read length %s", err.Error())
+	}
+	if length != 1 {
+		return ConnACKPayload{}, fmt.Errorf("invalid length %d", length)
+	}
+	p, err := utils.ReadByte(r)
+	if err != nil {
+		return ConnACKPayload{}, fmt.Errorf("fail read ReturnCode byte %s", err.Error())
+	}
+	return ConnACKPayload{
+		ReturnCode: p,
+	}, nil
 }

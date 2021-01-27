@@ -18,17 +18,25 @@ func (b *Broker) onPing(p packet) error {
 		"clientID": p.Client.ID,
 		"pingID":   pingp.ID,
 	}).Info("Received PING packet")
-	pongp := packets.PongPayload{
-		ID: pingp.ID,
-	}
-	_, err = p.Write(pongp.Bytes())
+
+	pongPacket, err := packets.Packet{
+		OpCode: packets.OpCodePong,
+		Payload: packets.PongPayload{
+			ID: pingp.ID,
+		}.Bytes(),
+	}.Bytes()
 	if err != nil {
-		return fmt.Errorf("fail snd pong %s", err.Error())
+		return fmt.Errorf("fail convert connack packet to bytes %s", err.Error())
+	}
+
+	_, err = p.Write(pongPacket)
+	if err != nil {
+		return fmt.Errorf("fail send pong %s", err.Error())
 	}
 
 	log.WithFields(log.Fields{
 		"clientID": p.Client.ID,
-		"pongID":   pongp.ID,
+		"pongID":   pingp.ID,
 	}).Info("Sent PONG packet")
 
 	return err

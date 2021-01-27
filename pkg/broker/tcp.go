@@ -31,7 +31,7 @@ func (b *Broker) ListenTCP() error {
 func (b *Broker) handleTCPConnection(conn net.Conn) {
 	defer conn.Close()
 
-	ptype, err := packets.ReadPacketType(conn)
+	ptype, err := packets.ReadOpCode(conn)
 	if err != nil {
 		log.WithError(err).Error("fail read packet type")
 		return

@@ -47,8 +47,8 @@ type Payload []byte
 // OpCode defnes opcode of packet
 type OpCode byte
 
-// ReadPacketType reads packet type and returns it
-func ReadPacketType(r io.Reader) (OpCode, error) {
+// ReadOpCode reads packet type and returns it
+func ReadOpCode(r io.Reader) (OpCode, error) {
 	b, err := utils.ReadByte(r)
 	return OpCode(b), err
 }

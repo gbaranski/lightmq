@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"crypto/ed25519"
 	"crypto/rand"
+	"fmt"
 	"os"
 
 	"github.com/gbaranski/lightmq/pkg/client"
+	"github.com/gbaranski/lightmq/pkg/packets"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -26,7 +28,19 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log.Info("Successfully connected!")
+	go func() {
+		err := c.ReadLoop()
+		if err != nil {
+			panic(err)
+		}
+	}()
+	connACK := <-c.Packets.ConnACK
+	if connACK.ReturnCode != packets.ConnACKConnectionAccepted {
+		panic(fmt.Errorf("unexpected ConnACK return code %x", connACK.ReturnCode))
+	}
+
+	log.Info("Successfully connected")
+
 	r := bufio.NewReader(os.Stdin)
 	for {
 		text, _ := r.ReadString('\n')
