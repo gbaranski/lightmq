@@ -1,6 +1,7 @@
 package packets
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/gbaranski/lightmq/pkg/utils"
@@ -12,12 +13,19 @@ type PongPayload struct {
 }
 
 // ReadPongPayload reads pong payload from io.Reader
-func ReadPongPayload(r io.Reader) (PingPayload, error) {
+func ReadPongPayload(r io.Reader) (PongPayload, error) {
+	length, err := utils.Read16BitInteger(r)
+	if err != nil {
+		return PongPayload{}, fmt.Errorf("fail read payload len")
+	}
+	if length != 2 {
+		return PongPayload{}, fmt.Errorf("invlaid length: %d", length)
+	}
 	id, err := utils.Read16BitInteger(r)
 	if err != nil {
-		return PingPayload{}, err
+		return PongPayload{}, err
 	}
-	return PingPayload{
+	return PongPayload{
 		ID: id,
 	}, nil
 }
