@@ -21,9 +21,10 @@ type packetChannels struct {
 
 // Client ...
 type Client struct {
-	cfg      Config
-	conn     net.Conn
-	channels packetChannels
+	cfg         Config
+	conn        net.Conn
+	channels    packetChannels
+	ConnCloseCh chan struct{}
 }
 
 // New creates new client
@@ -104,8 +105,9 @@ func (c Client) ReadLoop() {
 	for {
 		opcode, err := packets.ReadOpCode(c.conn)
 		if err != nil {
+			c.ConnCloseCh <- struct{}{}
 			logrus.Errorf("fail read operation code %s", err.Error())
-			continue
+			return
 		}
 		err = c.handleWithOpCode(opcode)
 		if err != nil {
