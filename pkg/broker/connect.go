@@ -17,7 +17,7 @@ func (b *Broker) onConnect(conn net.Conn) (Client, error) {
 
 	cp, err := packets.ReadConnectPayload(conn)
 	if err != nil {
-		cack, _ := packets.Packet{
+		cack := packets.Packet{
 			OpCode: packets.OpCodeConnACK,
 			Payload: packets.ConnACKPayload{
 				ReturnCode: packets.ConnACKMalformedPayload,
@@ -27,12 +27,13 @@ func (b *Broker) onConnect(conn net.Conn) (Client, error) {
 		return Client{}, err
 	}
 
-	cack, err := packets.Packet{
+	cack := packets.Packet{
 		OpCode: packets.OpCodeConnACK,
 		Payload: packets.ConnACKPayload{
 			ReturnCode: packets.ConnACKConnectionAccepted,
 		}.Bytes(),
 	}.Bytes()
+
 	_, err = conn.Write(cack)
 	if err != nil {
 		return Client{}, err

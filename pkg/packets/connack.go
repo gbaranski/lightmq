@@ -41,14 +41,14 @@ func (c ConnACKPayload) Bytes() []byte {
 func ReadConnACKPayload(r io.Reader) (ConnACKPayload, error) {
 	length, err := utils.Read16BitInteger(r)
 	if err != nil {
-		return ConnACKPayload{}, fmt.Errorf("fail read length %s", err.Error())
+		return ConnACKPayload{}, fmt.Errorf("unable read length %s", err.Error())
 	}
 	if length != 1 {
 		return ConnACKPayload{}, fmt.Errorf("invalid length %d", length)
 	}
 	p, err := utils.ReadByte(r)
 	if err != nil {
-		return ConnACKPayload{}, fmt.Errorf("fail read ReturnCode byte %s", err.Error())
+		return ConnACKPayload{}, fmt.Errorf("invalid returncode byte %s", err.Error())
 	}
 	return ConnACKPayload{
 		ReturnCode: p,

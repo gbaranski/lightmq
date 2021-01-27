@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/ed25519"
 	"fmt"
+	"math"
 )
 
 // Config ...
@@ -43,6 +44,9 @@ func (cfg Config) Parse() (Config, error) {
 	}
 	if cfg.ClientID == "" {
 		return cfg, fmt.Errorf("ClientID cannot be empty")
+	}
+	if len(cfg.ClientID) > math.MaxUint16 {
+		return cfg, fmt.Errorf("ClientID is too big, len: %d, max: %d", len(cfg.ClientID), math.MaxUint16)
 	}
 
 	return cfg, nil

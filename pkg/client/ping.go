@@ -8,24 +8,21 @@ import (
 )
 
 func (c Client) onPing() error {
-	pingp, err := packets.ReadPingPayload(c.conn)
+	pingPayload, err := packets.ReadPingPayload(c.conn)
 	if err != nil {
 		return fmt.Errorf("fail parse payload %s", err.Error())
 	}
-	log.WithFields(log.Fields{
-		"pingID": pingp.ID,
-	}).Info("Received PING packet")
-	pongp := packets.PongPayload{
 
-		ID: pingp.ID,
+	pongPayload := packets.PongPayload{
+		ID: pingPayload.ID,
 	}
-	_, err = c.conn.Write(pongp.Bytes())
+	_, err = c.conn.Write(pongPayload.Bytes())
 	if err != nil {
-		return fmt.Errorf("fail snd pong %s", err.Error())
+		return fmt.Errorf("fail send pong %s", err.Error())
 	}
 
 	log.WithFields(log.Fields{
-		"pongID": pongp.ID,
+		"pongID": pongPayload.ID,
 	}).Info("Sent PONG packet")
 
 	return nil

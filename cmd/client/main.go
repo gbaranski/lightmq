@@ -2,13 +2,13 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"crypto/ed25519"
 	"crypto/rand"
-	"fmt"
 	"os"
+	"time"
 
 	"github.com/gbaranski/lightmq/pkg/client"
-	"github.com/gbaranski/lightmq/pkg/packets"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,20 +24,12 @@ func main() {
 		Hostname:   "localhost",
 		Port:       997,
 	})
-	err = c.Connect()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	err = c.Connect(ctx)
 	if err != nil {
 		panic(err)
 	}
-	go func() {
-		err := c.ReadLoop()
-		if err != nil {
-			panic(err)
-		}
-	}()
-	connACK := <-c.Packets.ConnACK
-	if connACK.ReturnCode != packets.ConnACKConnectionAccepted {
-		panic(fmt.Errorf("unexpected ConnACK return code %x", connACK.ReturnCode))
-	}
+	cancel()
 
 	log.Info("Successfully connected")
 
@@ -45,10 +37,12 @@ func main() {
 	for {
 		text, _ := r.ReadString('\n')
 		if text == "ping\n" {
-			id, err := c.Ping()
+			ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+			id, err := c.Ping(ctx)
 			if err != nil {
 				panic(err)
 			}
+			cancel()
 			log.WithField("id", id).Info("Sent PING packet")
 			continue
 		}

@@ -19,7 +19,7 @@ func (b *Broker) onPing(p packet) error {
 		"pingID":   pingp.ID,
 	}).Info("Received PING packet")
 
-	pongPacket, err := packets.Packet{
+	pongPacket := packets.Packet{
 		OpCode: packets.OpCodePong,
 		Payload: packets.PongPayload{
 			ID: pingp.ID,

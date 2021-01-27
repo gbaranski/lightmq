@@ -1,56 +1,58 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/rand"
 	"net"
+	"time"
 
 	"github.com/gbaranski/lightmq/pkg/packets"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // PacketChannels is struct which contains of channels for packets
-type PacketChannels struct {
+type packetChannels struct {
 	ConnACK chan packets.ConnACKPayload
+	Ping    chan packets.PingPayload
+	Pong    chan packets.PongPayload
 }
 
 // Client ...
 type Client struct {
-	cfg     Config
-	conn    net.Conn
-	Packets PacketChannels
+	cfg      Config
+	conn     net.Conn
+	channels packetChannels
 }
 
 // New creates new client
 func New(cfg Config) Client {
 	return Client{
 		cfg: cfg,
-		Packets: PacketChannels{
+		channels: packetChannels{
 			ConnACK: make(chan packets.ConnACKPayload),
+			Ping:    make(chan packets.PingPayload),
+			Pong:    make(chan packets.PongPayload),
 		},
 	}
 }
 
 // Connect connects to the specified host with specified port
-func (c *Client) Connect() error {
+func (c *Client) Connect(ctx context.Context) error {
 	var err error
 	c.conn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", c.cfg.Hostname, c.cfg.Port))
 	if err != nil {
 		return err
 	}
-	payload, err := packets.ConnectPayload{
-		ClientID: c.cfg.ClientID,
-		// Fill it up later
-		Challenge: []byte{0, 0, 0, 0, 0, 0, 0, 0},
-	}.Bytes()
-	if err != nil {
-		return fmt.Errorf("fail convert connect payload to bytes %s", err.Error())
-	}
 
-	p, err := packets.Packet{
-		OpCode:  packets.OpCodeConnect,
-		Payload: payload,
+	go c.ReadLoop()
+
+	p := packets.Packet{
+		OpCode: packets.OpCodeConnect,
+		Payload: packets.ConnectPayload{
+			ClientID: c.cfg.ClientID,
+		}.Bytes(),
 	}.Bytes()
 	if err != nil {
 		return fmt.Errorf("fail convert connect packet to bytes %s", err.Error())
@@ -59,39 +61,57 @@ func (c *Client) Connect() error {
 	if err != nil {
 		return fmt.Errorf("fail write CONNECT packet %s", err.Error())
 	}
+
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("context finished before connecting")
+	case c := <-c.channels.ConnACK:
+		if c.ReturnCode != packets.ConnACKConnectionAccepted {
+			return fmt.Errorf("unexpected return code 0x%x", c.ReturnCode)
+		}
+		return nil
+	}
+}
+
+func (c Client) handleWithOpCode(opcode packets.OpCode) error {
+	switch opcode {
+	case packets.OpCodeConnACK:
+		payload, err := packets.ReadConnACKPayload(c.conn)
+		if err != nil {
+			return fmt.Errorf("fail read ConnACK payload, err: %s", err.Error())
+		}
+		c.channels.ConnACK <- payload
+	case packets.OpCodePing:
+		payload, err := packets.ReadPingPayload(c.conn)
+		if err != nil {
+			return fmt.Errorf("fail read Ping payload, err: %s", err.Error())
+		}
+		c.channels.Ping <- payload
+	case packets.OpCodePong:
+		payload, err := packets.ReadPongPayload(c.conn)
+		if err != nil {
+			return fmt.Errorf("fail read Pong payload, err: %s", err.Error())
+		}
+		c.channels.Pong <- payload
+	default:
+		return fmt.Errorf("Unhandleable opcode")
+	}
 	return nil
 }
 
-// Handler is type for packet handling function
-type handler = func() error
-
 // ReadLoop reads all data from connection in loop
-func (c Client) ReadLoop() error {
+func (c Client) ReadLoop() {
 	for {
 		opcode, err := packets.ReadOpCode(c.conn)
 		if err != nil {
-			return fmt.Errorf("fail read packet type %s", err)
+			logrus.Errorf("fail read operation code %s", err.Error())
+			continue
 		}
-		var handler handler
-
-		switch opcode {
-		case packets.OpCodeConnACK:
-			handler = c.onConnACK
-		case packets.OpCodePing:
-			handler = c.onPing
-		case packets.OpCodePong:
-			handler = c.onPong
-		default:
-			return fmt.Errorf("no handler for opcode:%x", opcode)
-		}
-
-		log.WithField("opcode", fmt.Sprintf("0x%x", opcode)).Info("Handling packet")
-		err = handler()
+		err = c.handleWithOpCode(opcode)
 		if err != nil {
-			return fmt.Errorf("fail handle %x: %s", opcode, err.Error())
+			logrus.WithField("opcode", opcode).Errorf(err.Error())
 		}
 	}
-
 }
 
 // Send sends a data
@@ -101,33 +121,37 @@ func (c Client) Send(data []byte) error {
 		Flags: 0,
 		Data:  data,
 	}.Bytes()
-	packet, err := packets.Packet{
+	packet := packets.Packet{
 		OpCode:  packets.OpCodeSend,
 		Payload: payload,
 	}.Bytes()
-	if err != nil {
-		return fmt.Errorf("fail encode payload %s", err.Error())
-	}
 
-	_, err = c.conn.Write(packet)
+	_, err := c.conn.Write(packet)
 
 	return err
 }
 
 // Ping sends PING packet, returns ID of ping
-func (c Client) Ping() (uint16, error) {
+func (c Client) Ping(ctx context.Context) (uint16, error) {
 	payload := packets.PingPayload{
 		ID: uint16(rand.Intn(math.MaxUint16)),
 	}
-
-	packet, err := packets.Packet{
+	packet := packets.Packet{
 		OpCode:  packets.OpCodePing,
 		Payload: payload.Bytes(),
 	}.Bytes()
-	if err != nil {
-		return 0, fmt.Errorf("fail encode packet")
-	}
-	_, err = c.conn.Write(packet)
 
-	return payload.ID, err
+	sendTime := time.Now()
+	_, err := c.conn.Write(packet)
+	if err != nil {
+		return payload.ID, fmt.Errorf("fail write packet %s", err.Error())
+	}
+
+	select {
+	case <-ctx.Done():
+		return payload.ID, fmt.Errorf("context finished before PONG packet")
+	case <-c.channels.Pong:
+		logrus.Infof("Received pong after %s", time.Since(sendTime).String())
+		return payload.ID, nil
+	}
 }
