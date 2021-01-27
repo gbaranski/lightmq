@@ -3,20 +3,13 @@ package packets
 import (
 	"fmt"
 	"io"
-	"math"
 
 	"github.com/gbaranski/lightmq/pkg/utils"
 )
 
-const (
-	// ConnectPayloadChallengeSize size of the challage on connect packet
-	ConnectPayloadChallengeSize int8 = 8
-)
-
 // ConnectPayload ...
 type ConnectPayload struct {
-	ClientID  string
-	Challenge []byte
+	ClientID string
 }
 
 // ReadConnectPayload ...
@@ -35,33 +28,16 @@ func ReadConnectPayload(r io.Reader) (cp ConnectPayload, err error) {
 	}
 	cp.ClientID = string(clientID)
 
-	cp.Challenge = make([]byte, ConnectPayloadChallengeSize)
-	n, err = r.Read(cp.Challenge)
-	if err != nil {
-		return cp, fmt.Errorf("fail read challenge %s", err.Error())
-	}
-	if n != int(ConnectPayloadChallengeSize) {
-		return cp, fmt.Errorf("invalid challange size")
-	}
-
 	return cp, nil
 }
 
 // Bytes converts ConnectPayload to payload bytes
-func (cp ConnectPayload) Bytes() ([]byte, error) {
-	if len(cp.ClientID) > math.MaxUint8 {
-		return nil, fmt.Errorf("ClientID is too big")
+func (cp ConnectPayload) Bytes() []byte {
+	p := make([]byte, 1+len(cp.ClientID))
+	p[0] = byte(len(cp.ClientID))
+	for i, c := range cp.ClientID {
+		p[i+1] = byte(c)
 	}
-	// 1 			  <- ClientID Size byte
-	// len(clientID)  <- ClientID length
-	// len(challenge) <- Challenge length
-
-	// Think about optimizing this one
-	p := make([]byte, 0)
-	p = append(p, uint8(len(cp.ClientID)))
-	p = append(p, []byte(cp.ClientID)...)
-	p = append(p, cp.Challenge...)
-
-	return p, nil
+	return p
 
 }

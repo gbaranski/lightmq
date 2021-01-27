@@ -1,10 +1,7 @@
 package packets
 
 import (
-	"encoding/binary"
-	"fmt"
 	"io"
-	"math"
 
 	"github.com/gbaranski/lightmq/pkg/utils"
 )
@@ -65,16 +62,17 @@ type Packet struct {
 }
 
 // Bytes converts packet to bytes which can be directly sent
-func (p Packet) Bytes() ([]byte, error) {
-	if len(p.Payload) > math.MaxUint16 {
-		return nil, fmt.Errorf("payload is too big: %d", len(p.Payload))
-	}
-	plen := make([]byte, 2)
-	binary.BigEndian.PutUint16(plen, uint16(len(p.Payload)))
-	// Optimize it later
-	b := make([]byte, 0)
-	b = append(b, byte(p.OpCode))
-	b = append(b, plen...)
-	b = append(b, p.Payload...)
-	return b, nil
+func (p Packet) Bytes() []byte {
+	length := 1 + // opcode
+		2 + // payload length in two bytes(uint16)
+		len(p.Payload) // length of the actual payload
+
+	b := make([]byte, length)
+	b[0] = byte(p.OpCode)
+	b[1] = byte(len(p.Payload) >> 8)
+	b[2] = byte(len(p.Payload))
+
+	copy(b[3:], p.Payload)
+
+	return b
 }
