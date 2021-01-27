@@ -72,3 +72,21 @@ func (c Client) Send(data []byte) error {
 
 	return err
 }
+
+// Ping sends PING packet, returns ID of ping
+func (c Client) Ping() (uint16, error) {
+	payload := packets.PingPayload{
+		ID: uint16(rand.Intn(math.MaxUint16)),
+	}
+
+	packet, err := packets.Packet{
+		OpCode:  packets.OpCodePing,
+		Payload: payload.Bytes(),
+	}.Bytes()
+	if err != nil {
+		return 0, fmt.Errorf("fail encode packet")
+	}
+	_, err = c.conn.Write(packet)
+
+	return payload.ID, err
+}

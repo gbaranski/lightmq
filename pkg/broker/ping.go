@@ -1,6 +1,8 @@
 package broker
 
 import (
+	"fmt"
+
 	"github.com/gbaranski/lightmq/pkg/packets"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,8 +20,16 @@ func (b *Broker) onPing(p packet) error {
 	}).Info("Received PING packet")
 	pongp := packets.PongPayload{
 		ID: pingp.ID,
-	}.Bytes()
-	_, err = p.Write(pongp)
+	}
+	_, err = p.Write(pongp.Bytes())
+	if err != nil {
+		return fmt.Errorf("fail snd pong %s", err.Error())
+	}
+
+	log.WithFields(log.Fields{
+		"clientID": p.Client.ID,
+		"pongID":   pongp.ID,
+	}).Info("Sent PONG packet")
 
 	return err
 }

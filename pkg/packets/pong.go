@@ -24,6 +24,7 @@ func ReadPongPayload(r io.Reader) (PingPayload, error) {
 
 // Bytes convert PongPayload to bytes
 func (p PongPayload) Bytes() (b []byte) {
+	b = make([]byte, 2)
 	b[0] = byte(p.ID >> 8)
 	b[1] = byte(p.ID)
 

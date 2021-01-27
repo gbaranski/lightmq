@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// OnSend should be executed on SEND packet
+// onSend should be executed on SEND packet
 func (b *Broker) onSend(p packet) error {
 	psize, err := packets.ReadPayloadSize(p)
 	if err != nil {

@@ -30,10 +30,17 @@ func main() {
 	r := bufio.NewReader(os.Stdin)
 	for {
 		text, _ := r.ReadString('\n')
+		if text == "ping\n" {
+			id, err := c.Ping()
+			if err != nil {
+				panic(err)
+			}
+			log.WithField("id", id).Info("Sent PING packet")
+			continue
+		}
 		log.WithField("msg", text).Info("Sending message")
 		err := c.Send([]byte(text))
 		if err != nil {
-
 			panic(err)
 		}
 	}
