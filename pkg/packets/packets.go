@@ -22,10 +22,10 @@ const (
 	// Direction: Server to Client or Client to Server
 	OpCodeSend
 
-	// OpCodeSendRESP - Send Response operation code
+	// OpCodeSendResponse - Send Response operation code
 	//
 	// Direction: Server to Client or Client to Server
-	OpCodeSendRESP
+	OpCodeSendResponse
 
 	// OpCodePing - Ping request operation code
 	//

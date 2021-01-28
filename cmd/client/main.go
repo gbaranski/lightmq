@@ -6,6 +6,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gbaranski/lightmq/pkg/client"
@@ -46,10 +47,16 @@ func main() {
 			log.WithField("id", id).Info("Sent PING packet")
 			continue
 		}
-		log.WithField("msg", text).Info("Sending message")
-		err := c.Send([]byte(text))
+		if strings.HasPrefix(text, "wres") {
+			ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+			log.WithField("msg", text).Info("Sending message with expected response")
+			_, err = c.SendWithResponse(ctx, []byte(text))
+		} else {
+			log.WithField("msg", text).Info("Sending message")
+			err = c.Send([]byte(text))
+		}
 		if err != nil {
-			panic(err)
+			log.WithError(err).Error("Fail send message")
 		}
 	}
 }

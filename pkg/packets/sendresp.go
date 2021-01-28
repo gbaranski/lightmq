@@ -8,27 +8,24 @@ import (
 	"github.com/gbaranski/lightmq/pkg/utils"
 )
 
-// SendPayload is payload of SEND packet
-type SendPayload struct {
-	ID    uint16
-	Flags byte
-	Data  []byte
+// SendResponsePayload is payload of SENDRESP packet
+type SendResponsePayload struct {
+	ID   uint16
+	Data []byte
 }
 
-// ReadSendPayload reads SendPayload from io.Reader
-func ReadSendPayload(r io.Reader) (sp SendPayload, err error) {
+// ReadSendResponsePayload reads SendResponsePayload from io.Reader
+func ReadSendResponsePayload(r io.Reader) (sp SendResponsePayload, err error) {
 	len, err := utils.Read16BitInteger(r)
 	if err != nil {
 		return sp, err
 	}
-	sp.ID, err = utils.Read16BitInteger(r)
+	idBytes := make([]byte, 2)
+	_, err = r.Read(idBytes)
 	if err != nil {
-		return sp, err
+		return sp, fmt.Errorf("fail read ID bytes %s", err.Error())
 	}
-	sp.Flags, err = utils.ReadByte(r)
-	if err != nil {
-		return sp, err
-	}
+	sp.ID = binary.BigEndian.Uint16(idBytes)
 
 	sp.Data = make([]byte, len-3)
 	_, err = r.Read(sp.Data)
@@ -40,14 +37,13 @@ func ReadSendPayload(r io.Reader) (sp SendPayload, err error) {
 }
 
 // Bytes convert payload to byte slice
-func (p SendPayload) Bytes() []byte {
+func (p SendResponsePayload) Bytes() []byte {
 	msgID := make([]byte, 2)
 	binary.BigEndian.PutUint16(msgID, p.ID)
 
 	// Optimize size
 	b := make([]byte, 0)
 	b = append(b, msgID...)
-	b = append(b, p.Flags)
 	b = append(b, p.Data...)
 
 	return b

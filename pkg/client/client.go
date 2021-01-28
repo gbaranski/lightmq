@@ -14,9 +14,11 @@ import (
 
 // PacketChannels is struct which contains of channels for packets
 type packetChannels struct {
-	ConnACK chan packets.ConnACKPayload
-	Ping    chan packets.PingPayload
-	Pong    chan packets.PongPayload
+	ConnACK  chan packets.ConnACKPayload
+	Ping     chan packets.PingPayload
+	Pong     chan packets.PongPayload
+	Send     chan packets.SendPayload
+	SendResp chan packets.SendResponsePayload
 }
 
 // Client ...
@@ -94,6 +96,12 @@ func (c Client) handleWithOpCode(opcode packets.OpCode) error {
 			return fmt.Errorf("fail read Pong payload, err: %s", err.Error())
 		}
 		c.channels.Pong <- payload
+	case packets.OpCodeSendResponse:
+		payload, err := packets.ReadSendResponsePayload(c.conn)
+		if err != nil {
+			return fmt.Errorf("fail read SendResponse payload, err: %s", err.Error())
+		}
+		c.channels.SendResp <- payload
 	default:
 		return fmt.Errorf("Unhandleable opcode")
 	}
@@ -131,6 +139,35 @@ func (c Client) Send(data []byte) error {
 	_, err := c.conn.Write(packet)
 
 	return err
+}
+
+// SendWithResponse sends a data and waits for response
+func (c Client) SendWithResponse(ctx context.Context, data []byte) (packets.SendResponsePayload, error) {
+	payload := packets.SendPayload{
+		ID:    uint16(rand.Intn(math.MaxInt16)),
+		Flags: 0,
+		Data:  data,
+	}
+	packet := packets.Packet{
+		OpCode:  packets.OpCodeSend,
+		Payload: payload.Bytes(),
+	}.Bytes()
+	_, err := c.conn.Write(packet)
+	if err != nil {
+		return packets.SendResponsePayload{}, err
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return packets.SendResponsePayload{}, fmt.Errorf("timeout waiting for response")
+		case p := <-c.channels.SendResp:
+			if p.ID != payload.ID {
+				continue
+			}
+			return p, nil
+		}
+	}
 }
 
 // Ping sends PING packet, returns ID of ping

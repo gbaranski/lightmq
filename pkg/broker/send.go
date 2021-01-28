@@ -7,11 +7,7 @@ import (
 
 // onSend should be executed on SEND packet
 func (b *Broker) onSend(p packet) error {
-	psize, err := packets.ReadPayloadSize(p)
-	if err != nil {
-		return err
-	}
-	sp, err := packets.ReadSendPayload(p, psize)
+	sp, err := packets.ReadSendPayload(p)
 	if err != nil {
 		return err
 	}
